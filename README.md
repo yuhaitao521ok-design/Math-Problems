@@ -243,6 +243,44 @@ tectonic -X compile ns-forced-vs-unforced.tex   # 或任意 LaTeX 发行版
 
 ---
 
+## 十一、中文讲义（带图示）
+
+- `notes/notes.pdf` — 15 页中文讲义，13 幅图，可直接阅读
+- `notes/notes.tex` — 讲义源码（xeCJK + 已子集化的 Noto Sans CJK，仓库内自带字体，可离线编译）
+- `notes/make_figs.py` — 真实二维涡量模拟（谱方法，192² 网格），生成图 2、图 3
+- `notes/make_schematics.py` — 其余 11 幅示意图/流程图，生成图 1、4–13
+- `notes/figs/` — 每幅图的 PDF（矢量）与 PNG（预览）
+
+讲义目录：
+
+| 节 | 内容 | 配图 |
+|---|---|---|
+| 1 | 先给结论：三句话 | — |
+| 2 | 方程在说什么：对流、粘性、不可压缩；什么叫“爆破” | 图 1（爆破示意） |
+| 3 | 二维为什么能证完：涡量输运、L^p 范数不增、Biot–Savart 自举 | 图 2（真实快照）、图 3（L^p 曲线）、图 4（2D vs 3D） |
+| 4 | 三维多出来的那一项：涡管拉伸、尺度缺口 | 图 5（拉伸示意）、图 6（尺度律） |
+| 5 | 人类已知：Leray、CKN、Prodi–Serrin、BKM | 图 7（九十年时间线） |
+| 6 | 指定力定理：自由外力 ⇒ 控制问题；人造爆破 | 图 8（流程图）、图 9（人造爆破） |
+| 7 | 代价定律：‖f‖∞ = (2a)^{-3/2}‖F‖∞ (T−t)^{-3/2} | 图 10（价目表） |
+| 8 | 2026 时间线 + Lean 能证明什么 | 图 11（证据链） |
+| 9 | 放回千禧七题 | 图 12（七题现状） |
+| 10 | 数值核验（误差条形图） | 图 13 |
+| 11 | 读“AI 证明了某某猜想”新闻的七个问题 | — |
+
+复现：
+
+```bash
+cd notes
+python3 make_figs.py          # 约 1–2 分钟，二维谱方法模拟
+python3 make_schematics.py    # 约 20 秒，示意图
+tectonic -X compile notes.tex # 或 xelatex notes.tex（需两次以生成目录）
+```
+
+注：仓库内的 `notes/fonts/*.otf` 是 Noto Sans CJK 的**字形子集**（约 270 KB/个，
+只含讲义用到的 744 个字符），因此克隆后无需联网即可编译。
+
+---
+
 ## 参考文献与延伸
 
 - Clay Mathematics Institute, *Millennium Prize Problems*: https://www.claymath.org/millennium-problems/

@@ -1,5 +1,6 @@
 # build artifacts and local toolchain
 .bin/
+.fonts/
 *.aux
 *.log
 *.xdv
