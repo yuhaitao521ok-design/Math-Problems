@@ -1,0 +1,515 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{xeCJK}
+\setCJKmainfont{NotoSansCJKsc-Regular.otf}[Path=fonts/,BoldFont=NotoSansCJKsc-Bold.otf]
+\setCJKsansfont{NotoSansCJKsc-Regular.otf}[Path=fonts/,BoldFont=NotoSansCJKsc-Bold.otf]
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
+
+\definecolor{err}{HTML}{C53030}
+\definecolor{ok}{HTML}{2F855A}
+\definecolor{imp}{HTML}{B7791F}
+\newcommand{\ERR}{\textcolor{err}{\textbf{ERROR}}}
+\newcommand{\IMP}{\textcolor{imp}{\textbf{IMPRECISION}}}
+\newcommand{\COR}{\textcolor{ok}{\textbf{CORRECT}}}
+\newcommand{\FIX}{\textcolor{ok}{\textbf{fixed in v2}}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\T}{\mathbb{T}}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.45em}
+\linespread{1.18}
+\captionsetup{font=small,labelfont=bf}
+
+\title{\bfseries Independent Cross-Validation of\\[2pt]
+\emph{Forced versus unforced Navier--Stokes}\\[8pt]
+\large 独立交叉验证报告}
+\author{Prepared by an AI research assistant, with two independent referees (AI) and machine checks}
+\date{2 November 2026 \quad$\cdot$\quad audited version: \texttt{c63c0a4} \quad$\cdot$\quad revised version: \texttt{c873aa2}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent\textbf{English.} We report an independent audit of the 20-page paper
+\emph{Forced versus unforced Navier--Stokes: what a prescribed force can and cannot prove}
+(commit \texttt{c63c0a4}). The audit had three independent components: (i) two referee agents
+--- fresh model instances, prompted as hostile referees with different mandates, and given only
+the files --- reviewed every numbered statement and proof; (ii) machine checks re-derived the
+algebra symbolically (SymPy) and re-ran the numerical verification in a clean directory;
+(iii) the literature invoked by the paper was checked against primary or survey sources.
+
+The audit produced \textbf{15 findings}: 2 serious errors (a missing hypothesis that made the
+two-dimensional ``complete proof'' circular, and a maximal-regularity lemma stated in a form
+that is false at the endpoint), 4 further errors, 1 factual error about the literature,
+3 imprecisions, 1 missing term, 1 missing hypothesis, 1 claim supported only by floating-point
+arithmetic, 1 over-reach and 1 overstatement of novelty. All 15 have been corrected in
+commit \texttt{c873aa2}. After revision the paper's \emph{conclusions} survive, but three
+claims had to be weakened: the prescription theorem is elementary (folklore), the price law is
+an identity for exactly self-similar solutions rather than a general lower bound, and one
+corollary (discrete self-similarity) was false and has been deleted. We also record what the
+audit \emph{confirmed} independently, and what it could not check at all.
+
+\medskip
+\noindent\textbf{中文摘要.}
+本报告是对 20 页论文《受迫与无受迫纳维--斯托克斯：给定的外力能证明什么、不能证明什么》
+（提交 \texttt{c63c0a4}）的独立交叉验证。验证由三部分组成：(i) 两个独立的“审稿人”
+模型实例（只给文件、不给作者的推理过程，分别以“严苛审稿人”和“专挑具体步骤”的角色提示）；
+(ii) 机器核验（SymPy 符号重推 + 在干净目录重跑数值脚本）；(iii) 文献核对（Clay 官方
+四种提法、2026 年三篇 arXiv 预印本、NRS 与 ES\v{S} 两个经典定理）。
+
+共发现 \textbf{15 处问题}：2 处严重错误（二维“完整证明”缺假设导致循环；极大正则性引理
+写成了端点处不成立的形式）、4 处其他错误、1 处文献事实错误、3 处不精确、1 处漏项、
+1 处缺假设、1 处仅靠浮点运算支撑的断言、1 处越界推论、1 处新颖性夸大。全部 15 处已在
+\texttt{c873aa2} 中修正。修正后论文的\emph{主要结论}仍然成立，但有三处必须弱化：
+指定力定理是初等的（属 folklore）、代价定律只对“精确自相似”成立且是等式、以及一个
+推论（离散自相似）本身是错的、已删除。报告同时列出审计\emph{确认}的部分与\emph{完全
+无法}核验的部分。
+\end{abstract}
+
+\tableofcontents
+
+\section{Scope, versions, artefacts}
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Item & Version audited (v1) & Revised (v2)\\
+\midrule
+Paper & \texttt{c63c0a4} (20 pp.) & \texttt{c873aa2} (20 pp.)\\
+Numerical script & \texttt{paper/verify.py} & unchanged\\
+Chinese lecture notes & \texttt{fdb26c2} & minor edits (four Clay formulations)\\
+Referees & 2 fresh model instances & ---\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The paper under audit claims complete proofs of: 2D global regularity (Thm 5.1);
+Prodi--Serrin (Thm 4.2) and Beale--Kato--Majda (Thm 4.6); a ``prescription theorem'' for the
+forced problem (Thm 7.1); a manufactured blow-up (Cor 7.3); and a ``price law'' for exactly
+self-similar blow-up (Thm 8.1), with two corollaries. It \emph{quotes} (does not prove) the
+2026 theorems of Constantin--Ignatova--Vicol and Ingimarson--Kukavica--Xu, and the
+autoformalisation result of Bastounis--Circelli--Hansen.
+
+\section{Method}
+
+\subsection{Two independent referees}
+
+Two referee agents were instantiated as separate model instances with no access to the author's
+conversation, notes or reasoning; each received only the \LaTeX{} source and the verification
+scripts. Their mandates differed deliberately:
+
+\begin{itemize}[leftmargin=1.6em]
+\item \textbf{R1 (journal referee).} ``Hostile but fair referee for a top PDE journal. Verify
+mathematics step by step; you may not say `standard' without checking. Give a verdict per
+numbered item, then the five most serious problems.'' R1 ran 29 review iterations and also
+fetched the three arXiv abstracts and the Clay statement.
+\item \textbf{R2 (targeted auditor).} ``Be terse and concrete; compact output.'' R2 was given a
+specific list of the seven places where a referee would expect trouble: the sign in Kato's
+inequality, the trace-space issue in the maximal-regularity lemma, the bootstrap to a local
+sup norm, the pressure sign in the prescription theorem, the $H^s$ scaling exponents, whether
+the pressure in Theorem 8.1 is necessarily self-similar, and the $L^{2/3}$ claim in
+Remark 8.4.
+\end{itemize}
+
+Neither referee saw the other's report; the two reports were written independently and agree on
+the two serious errors.
+
+\subsection{Machine checks}
+
+\begin{itemize}[leftmargin=1.6em]
+\item \textbf{Symbolic (SymPy).} Six identities re-derived from their definitions: the chain
+rule $\frac{d}{dt}[\lambda U(\lambda x)]=\dot\lambda(U+y\cdot\nabla U)$ for three profiles;
+$\dot\lambda/\lambda^3=a$; the exponent identity
+$\lambda^{3-3/q}=(2a(T-t))^{-\frac32(1-\frac1q)}$; Kato's identity
+$\Delta|w|^p-p|w|^{p-2}w\Delta w=p(p-1)|w|^{p-2}|\nabla w|^2$ for $p=2,4$; the
+Prodi--Serrin/Young exponent identities; the vorticity of the Gaussian profile; and
+$\operatorname{curl}((u\cdot\nabla)u)=(u\cdot\nabla)\omega$ in 2D. All residuals are exactly
+zero (Appendix~\ref{app:sym}).
+\item \textbf{Clean-room numerics.} \texttt{paper/verify.py} was copied to an empty directory and
+re-run; the output reproduced Appendix~B to all digits
+($\max|\operatorname{div}f|=1.511\times10^{-10}$, scaling error $4.491\times10^{-12}$,
+$(T-t)^{3/2}\|f\|_\infty=1.153384$ at all three times).
+\item \textbf{Figures.} The 2D simulation behind the lecture notes was re-run from
+\texttt{notes/make\_figs.py}; the reported invariants (max$\,|\omega|$ decreasing from 2.152 to
+1.950, $\|\omega\|_2$ ratio $0.9217$) are consistent with $\|\omega\|_p$ being non-increasing.
+\end{itemize}
+
+\subsection{Source checks}
+
+Checked against primary or survey sources, not against the paper's summary: the Clay problem has
+\emph{four} official formulations, two without and two with a smooth external force; the three
+2026 arXiv abstracts (2609.20803, 2610.25531, 2610.08144) and their exact hypotheses; the
+exclusion of non-trivial backward self-similar solutions in $W^{1,2}$ by
+Ne\v{c}as--R\r{u}\v{z}i\v{c}ka--\v{S}ver\'ak (via Tsai's survey, arXiv:1802.00038, \S2); and the
+$L^\infty_tL^3$ regularity theorem of Escauriaza--Seregin--\v{S}ver\'ak.
+
+\section{Findings at a glance}
+
+Table~\ref{tab:findings} lists all 15 findings. ``v1 verdict'' refers to the audited version;
+the last column records what was done in v2.
+
+{\small
+\begin{longtable}{@{}p{0.45cm}p{2.85cm}p{1.7cm}p{6.5cm}p{5.7cm}@{}}
+\caption{All findings of the audit.}\label{tab:findings}\\
+\toprule
+ID & Item & v1 & Issue & Correction in v2\\
+\midrule
+\endfirsthead
+\toprule
+ID & Item & v1 & Issue & Correction in v2\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+F1 & Prop 2.1 & \ERR & $x\mapsto\lambda x$ does not preserve the torus unless $\lambda\in\mathbb N$, so $u_\lambda$ is not defined on $\T^3$ for general $\lambda$ & require $\lambda\in\mathbb N$ on $\T^3$\\
+F2 & Thm 3.1 (proof) & \ERR & no eigenbasis of the Stokes operator on $\R^3$ (continuous spectrum); and $\|B(u,u)\|_{H^{-2}}\le C\|u\|\|\nabla u\|$ has the wrong exponents & prove on $\T^3$/bounded domain, cite Heywood's basis for $\R^3$; correct bound to $\|u\|^{1/2}\|\nabla u\|^{3/2}$\\
+F3 & Rem 4.3 & \ERR (factual) & claimed the $L^\infty_tL^3$ criterion is ``open for large data''; it is a theorem (ES\v{S} 2003) & replaced by the correct statement; the open range is $q<3$\\
+F4 & Rem 4.5 & \ERR (minor) & the $L^q$ identity omits the forcing term & added $\int f\cdot u|u|^{q-2}$ with its bound\\
+F5 & Thm 5.1 & \ERR (serious) & $u_0\in H^1$ does not give $\omega_0\in L^p$ for $p>2$, so Step 2 is void; and $\sup_{[0,T]}\|\nabla u\|_p<\infty$ is false at $t=0$ & theorem restated for $u_0\in H^2$; bound over $[\delta,T]$; $H^1$ by approximation (new Remark 5.5)\\
+F6 & Lemma 5.2 & \IMP & hypothesis $\omega_0\in L^p$ missing & added\\
+F7 & Lemma 5.4 & \ERR (serious) & a pointwise-in-$t$ bound with $F\in L^\infty_tL^p$ is not available from maximal regularity (only $L^q_t$, $q<\infty$); $\int_0^t\|Ae^{\nu\tau A}\|\,d\tau$ diverges & lemma restated in $L^q$ form; Step 4 rewritten with $q=p$, giving $\nabla u\in L^p_tL^\infty\subset L^1_t$\\
+F8 & Thm 6.1 & \IMP & slice statement gave only $\mathcal H^2$ & strengthened to $\mathcal H^1$\\
+F9 & Thm 7.1 & \IMP & pressure normalization missing, so the converse is false ($p$ is determined only up to $c(t)$, and the reconstructed force is $f-\nabla c$) & normalization added; converse qualified\\
+F10 & Cor 7.2 & \ERR & ``bijection onto all smooth forces'' is false: the image lies in $\{\operatorname{div}f=0\}$ (counterexample $f=\nabla\phi$, $u_0=0$); injectivity was proved with a 2D inequality & restricted to divergence-free forces; 3D-valid energy proof of injectivity\\
+F11 & Cor 7.3 & unproved & $F\not\equiv0$ (which makes $\|f\|_\infty\to\infty$) was asserted from floating-point arithmetic & proved: $F\equiv0$ would give a non-trivial backward self-similar solution in $W^{1,2}$, excluded by NRS 1996\\
+F12 & eq. (8.5) & \ERR & exponent written as $-(3-3/q)$ instead of $-\frac32(1-\frac1q)$ & corrected\\
+F13 & Cor 8.3 & \ERR (false) & discrete self-similarity: self-similarity at a sequence does not determine $\partial_tu$, and $a$ depends on $k$; not a consequence of Thm 8.1 & corollary deleted\\
+F14 & Cor 9.2 & over-reach & concluded that $f$ is not $C^2$-bounded, which does not follow; IKX hypothesis dropped & analyticity excluded unconditionally, vanishing only in the $C^2$-bounded case; IKX hypothesis restored; Prop 10.1(b) softened\\
+F15 & Thm 7.1 (novelty) & overstatement & the prescription identity is elementary and folklore (the standard ``any path can be driven'' observation) & novelty claim withdrawn; kept as a precise statement plus the control interpretation\\
+\end{longtable}
+}
+
+\section{The two serious errors, in detail}
+
+\subsection{F5: the 2D ``complete proof'' was circular}
+
+In v1 the section opens with ``$u_0\in H^1_\sigma(\T^2)$'', and Lemma 5.2 gives
+\begin{equation}\label{eq:vort}
+\|\omega(t)\|_p\le\|\omega_0\|_p+\int_0^t\|g(s)\|_p\,ds .
+\end{equation}
+For $p>2$ the right-hand side involves $\|\omega_0\|_p$, but $u_0\in H^1$ only gives
+$\omega_0\in L^2$. Hence $M_p=\infty$ for every $p>2$, Step 3 ($B(u,u)\in L^\infty_tL^p$) never
+starts, and nothing beyond $p=2$ is proved. The displayed conclusion
+$\sup_{t\in[0,T]}\|\nabla u(t)\|_p<\infty$ is also false at $t=0$ for $p>2$, since
+$\nabla u_0\notin L^p$ in general.
+
+\emph{Fix.} The theorem is now stated for $u_0\in H^2_\sigma$, which gives
+$\omega_0\in H^1\subset L^p$ for all $p<\infty$, and the bound is asserted on $[\delta,T]$
+(and on $[0,T]$ if $u_0\in W^{1,p}$). The $H^1$ case is recovered by approximation, using the
+difference estimate of Proposition 5.6, whose constant depends only on
+$\|\nabla v\|_{L^2_tL^2}$ and is therefore uniform by the energy inequality (new Remark 5.5).
+This approximation does not use \eqref{eq:vort} at $p>2$.
+
+\emph{Why it matters.} The failure is not cosmetic: the entire bootstrap is driven by
+$\omega\in L^\infty_tL^p$ with $p>2$, precisely so that $W^{1,p}\subset L^\infty$ in two
+dimensions. Without the hypothesis the proof has no content.
+
+\subsection{F7: maximal regularity cannot be quoted at $q=\infty$}
+
+v1 asserted, for $F\in L^\infty(0,T;L^p)$,
+\[
+\sup_{\delta\le t\le T}\bigl(\|u(t)\|_{W^{2,p}}+\|\partial_tu(t)\|_p\bigr)
+\le C(\delta,p,\nu,T)\bigl(\|u_0\|_p+\|F\|_{L^\infty(0,T;L^p)}\bigr).
+\]
+Giga--Sohr give $\|u\|_{L^q_tW^{2,p}}+\|\partial_tu\|_{L^q_tL^p}\le C_q\|F\|_{L^q_tL^p}$ for
+$1<q<\infty$ only. The endpoint $q=\infty$ fails because
+$\int_0^t\|Ae^{\nu\tau A}\|_{p\to p}\,d\tau=\infty$: no pointwise-in-time bound uniform in $F$
+can hold.
+
+\emph{Fix.} The lemma is restated in $L^q$ form, and Step 4 takes $q=p$: since
+$B(u,u)+f\in L^\infty_tL^p\subset L^p_tL^p$, maximal regularity gives
+$u\in L^p(0,T^*;W^{2,p})$, hence $\nabla u\in L^p(0,T^*;L^\infty)$ and, since $T^*<\infty$,
+\[
+\int_0^{T^*}\|\nabla u(t)\|_\infty\,dt\le(T^*)^{1-1/p}\|\nabla u\|_{L^p_tL^\infty}<\infty ,
+\]
+which is exactly what Beale--Kato--Majda needs. The revised proof is shorter: the
+$\delta$-truncation is no longer needed.
+
+\subsection{F10, F12, F13: the remaining structural errors}
+
+\textbf{Cor 7.2.} The v1 claim ``the map (7.2) is a bijection \dots\ onto the smooth forces for
+which (1.1) has a smooth solution'' is false, because the construction always produces
+$\operatorname{div}f=0$: with $f=\nabla\phi$ and $u_0=0$, $(u,p)=(0,\phi)$ is a smooth solution
+but $\operatorname{div}f=\Delta\phi\ne0$. The revised statement restricts to divergence-free
+forces (harmless: a gradient is absorbed into the pressure) and replaces the 2D inequality used
+in the injectivity proof by the 3D estimate $\|w\|_4\le C\|w\|^{1/4}\|\nabla w\|^{3/4}$.
+
+\textbf{Equation (8.5).} With $\lambda=(2a(T-t))^{-1/2}$,
+$\lambda^{3-3/q}=(2a(T-t))^{-\frac32(1-\frac1q)}$. The v1 exponent $-(3-3/q)$ is off by a factor
+$3/2$ in the power of $(T-t)$; the corrected identity passes check C2 of
+Appendix~\ref{app:sym}.
+
+\textbf{Cor 8.3 (deleted).} v1 asserted that if $u(\cdot,t_k)=\lambda_kU(\lambda_kx)$ along a
+sequence $t_k\uparrow T$, then
+$\limsup_k(T-t_k)^{3/2}\|f(t_k)\|_\infty=(2a)^{-3/2}\|F\|_\infty$. This does not follow: the
+theorem computes $f$ from $\partial_tu$, which self-similarity at isolated times does not
+determine, and $a$ is not defined by the data (instead
+$a_k=1/(2\lambda_k^2(T-t_k))$, which may depend on $k$). What survives is the correct statement
+already contained in Theorem 8.1: if the solution is self-similar \emph{on an interval} with a
+fixed profile, then $\dot\lambda/\lambda^3\equiv a$ and the price law holds identically in $t$.
+
+\section{What the audit confirmed independently}
+
+The referees agreed, after independent recomputation, on the following; these are the parts of
+the paper that did \emph{not} change.
+
+\begin{itemize}[leftmargin=1.6em]
+\item \textbf{Prodi--Serrin (Thm 4.2).} The Hölder exponents $(q,\,2q/(q-2),\,2)$, the
+Gagliardo--Nirenberg exponent $\theta=3/q$, Young's inequality with $\sigma=2q/(q+3)$,
+$\sigma'=2q/(q-3)$, and the equivalence $2q/(q-3)\le p\iff 2/p+3/q\le1$ were checked line by
+line.
+\item \textbf{Beale--Kato--Majda (Thm 4.6).} The commutation estimate, the Gronwall step and the
+continuation argument are correct as stated.
+\item \textbf{Kato's inequality.} The direction is correct ($s\mapsto|s|^p$ is convex), and
+$\int\Delta\omega\,\omega|\omega|^{p-2}\le\frac1p\int\Delta|\omega|^p=0$ is legitimate; SymPy
+check C3 verifies the identity for $p=2,4$.
+\item \textbf{The 2D bootstrap} ($\omega\in L^\infty_tL^p\Rightarrow\nabla u\in L^\infty_tL^p
+\Rightarrow u\in L^\infty\Rightarrow$ bootstrap $\Rightarrow$ BKM) is correct once the
+hypothesis on $\omega_0$ is in place.
+\item \textbf{The prescription identity.} The pressure sign convention, the divergence
+computation $\operatorname{div}f=\operatorname{div}((v\cdot\nabla)v)+\Delta q=0$, and the
+formula for $F$ were confirmed; the clean-room run reproduces
+$\max|\operatorname{div}f|=1.5\times10^{-10}$.
+\item \textbf{The price law.} The chain rule, $\dot\lambda=a\lambda^3$, the $\lambda^3$ scaling
+of $F$, and the resulting identity (with the corrected exponent) are correct; SymPy checks
+C1--C2 confirm the two identities on which everything rests.
+\item \textbf{The exponents in Cor 7.3.} $\|v\|_{\dot H^s}=\lambda^{s-1/2}\|U\|_{\dot H^s}$,
+$\|v\|_\infty=\lambda\|U\|_\infty$, and the threshold $s=1/2$ are correct.
+\end{itemize}
+
+\section{What the audit could not check}
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{The quoted 2026 theorems.} The statements of Constantin--Ignatova--Vicol and of
+Ingimarson--Kukavica--Xu were checked against their abstracts, but their proofs were not
+reproved. Corollary 9.2 is only as good as those theorems.
+\item \textbf{The 2026 manuscript.} Neither the 166-page manuscript nor the Lean development was
+audited; the paper only \emph{quotes} the reported facts (166 pages, 3 withdrawn manuscripts,
+721/373, 42\% formalised).
+\item \textbf{The numerics as evidence.} The checks verify identities; they do not verify any
+\emph{a priori} bound. T3's chain-rule test has a finite-difference error of $2.6\times10^{-6}$
+and therefore cannot detect an error of relative size $10^{-6}$.
+\item \textbf{The 2D simulation.} It is a $192^2$ spectral run, not a resolution study; the
+monotone $L^p$ decay is a theorem, and the simulation only illustrates it.
+\item \textbf{Human review.} No human referee has read the revised paper.
+\end{enumerate}
+
+\section{Recommendations for auditing machine-written mathematics}
+
+The exercise suggests a cheap, reproducible protocol.
+
+\begin{enumerate}[label=\textbf{R\arabic*.},leftmargin=2.2em]
+\item \textbf{Two referees with different mandates.} One verifies statements globally; one is
+given the list of places where the argument is most likely to fail. Agreement is weak evidence;
+\emph{disagreement} is a reliable pointer to a real problem.
+\item \textbf{Check hypotheses against the space, not the name.} F5 and F6 both came from
+``$u_0\in H^1$'' being silently upgraded to ``$\omega_0\in L^p$''. Ask, for every lemma, which
+norm of the \emph{data} appears on the right-hand side.
+\item \textbf{Distrust endpoint exponents.} F7 is the generic failure mode of quoting maximal
+regularity at $q=\infty$; any ``$\sup_t$'' estimate derived from an $L^q_t$ theorem should be
+re-derived.
+\item \textbf{Re-derive every exponent symbolically.} F12 (an error of a factor $3/2$) would
+survive any amount of prose review and is caught in one line by SymPy.
+\item \textbf{Separate ``numerically verified'' from ``proved''.} F11's claim was true, but the
+support was floating point; it became a theorem only after a literature argument was found.
+\item \textbf{Re-run numerics in a clean directory.} One minute; it rules out path dependence,
+stale output and caching.
+\item \textbf{Check the source of every quoted theorem.} F3 was a false statement about the
+literature that no amount of local checking would reveal.
+\end{enumerate}
+
+\section{中文版报告}\label{sec:zh}
+
+本节是前面各节的中文表述，可独立阅读。
+
+\subsection*{一、做了什么}
+
+对论文《受迫与无受迫纳维--斯托克斯：给定的外力能证明什么、不能证明什么》（20 页，
+提交 \texttt{c63c0a4}）做了一次三路交叉验证：
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{两个独立“审稿人”模型实例}。只给 \LaTeX{} 源文件和脚本，不给作者的推理过程。
+      第一位以“顶级期刊的严苛审稿人”为角色，逐条核对定理与证明；第二位被明确告知七个
+      最容易出错的位置（Kato 不等号方向、极大正则性的端点、局部上界 bootstrap、压力符号、
+      $H^s$ 指数、压力是否必然自相似、$L^{2/3}$ 断言），要求逐条判定。两人互不通气。
+\item \textbf{机器核验}。SymPy 从定义出发重推六组恒等式（链式法则、$\dot\lambda=a\lambda^3$、
+      指数换算、Kato 恒等式、Prodi--Serrin/Young 指数、二维涡量恒等式）；把
+      \texttt{verify.py} 复制到空目录重跑；重跑二维涡量模拟。
+\item \textbf{文献核对}。Clay 官方四种提法（两种无外力、两种带光滑外力）；三篇 2026 年
+      arXiv 预印本的摘要与假设；NRS 关于“$W^{1,2}$ 中不存在非平凡后向自相似解”的结论
+      （经 Tsai 综述核实）；ES\v{S} 的 $L^\infty_tL^3$ 正则性定理。
+\end{enumerate}
+
+\subsection*{二、结论：15 处问题，全部已修}
+
+\begin{center}
+\small
+\begin{tabular}{@{}p{1.0cm}p{2.6cm}p{2.0cm}p{7.6cm}@{}}
+\toprule
+编号 & 位置 & 判定 & 问题与修正\\
+\midrule
+F1 & 命题 2.1 & 错误 & 环面上 $x\mapsto\lambda x$ 只在 $\lambda\in\mathbb N$ 时保持周期；已加假设\\
+F2 & 定理 3.1 证明 & 错误 & $\mathbb R^3$ 上 Stokes 算子没有特征基；$B(u,u)$ 的 $H^{-2}$ 界指数写错；已改\\
+F3 & 注 4.3 & 事实错误 & 误称 $L^\infty_tL^3$ 判据“大初值未解决”；实际是 ES\v{S} 2003 的定理；已更正\\
+F4 & 注 4.5 & 错误（小） & $L^q$ 恒等式漏掉外力项；已补\\
+F5 & 定理 5.1 & 严重错误 & $u_0\in H^1$ 推不出 $\omega_0\in L^p$（$p>2$），第二步失效；且 $[0,T]$ 上的上界在 $t=0$ 不成立 \\
+F6 & 引理 5.2 & 不精确 & 缺 $\omega_0\in L^p$ 假设；已补\\
+F7 & 引理 5.4 & 严重错误 & 把极大正则性写成 $L^\infty_t$ 的逐点形式（端点不成立）；已改为 $L^q$ 形式并重写第四步\\
+F8 & 定理 6.1 & 不精确 & 切片只给到 $\mathcal H^2$；已加强为 $\mathcal H^1$\\
+F9 & 定理 7.1 & 不精确 & 缺压力归一化，逆命题不成立（$p$ 只确定到 $c(t)$，重构出的外力是 $f-\nabla c$）\\
+F10 & 推论 7.2 & 错误 & “到所有光滑外力的双射”不成立（像集只含无散外力，反例 $f=\nabla\phi$）；单射性用了二维不等式\\
+F11 & 推论 7.3 & 未证明 & $F\not\equiv0$ 只由浮点运算支撑；现已用 NRS 定理证明\\
+F12 & 式 (8.5) & 错误 & 指数写成 $-(3-3/q)$，应为 $-\tfrac32(1-\tfrac1q)$\\
+F13 & 推论 8.3 & 错误（假） & 离散自相似的版本不成立（$\partial_tu$ 不被确定，$a$ 依赖于 $k$）；已删除\\
+F14 & 推论 9.2 & 越界 & 推出了“$f$ 在 $C^2$ 中无界”，推不出；已改为：解析性被无条件排除，恒零只在 $C^2$ 有界时排除\\
+F15 & 定理 7.1 新颖性 & 夸大 & 指定力恒等式是初等的、属 folklore；已撤回新颖性表述\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{三、两处严重错误是什么}
+
+\textbf{F5（二维证明曾循环）}：引理 5.2 给的是
+$\|\omega(t)\|_p\le\|\omega_0\|_p+\int\|g\|_p$，右边需要 $\|\omega_0\|_p$；但 $u_0\in H^1$
+只给 $\omega_0\in L^2$。于是 $p>2$ 时 $M_p=\infty$，第三步（$B(u,u)\in L^\infty_tL^p$）根本
+启动不了。修正：定理改为对 $u_0\in H^2$ 陈述（此时 $\omega_0\in H^1\subset L^p$），
+上界写在 $[\delta,T]$ 上；$H^1$ 情形用差分解的稳定性（命题 5.6）做逼近，新增注 5.5。
+
+\textbf{F7（极大正则性用錯端点）}：原引理声称对 $F\in L^\infty_tL^p$ 有逐点（$\sup_t$）估计。
+Giga--Sohr 只给 $L^q_t$（$1<q<\infty$）；端点 $q=\infty$ 不成立，因为
+$\int_0^t\|Ae^{\nu\tau A}\|\,d\tau=\infty$。修正：引理改为 $L^q$ 形式，第四步取 $q=p$，
+得 $\nabla u\in L^p_tL^\infty\subset L^1_t$，正好满足 BKM。改后证明更短，也不再需要
+$\delta$-截断。
+
+\subsection*{四、审计确认了什么（这些没有改）}
+
+Prodi--Serrin 与 BKM 的证明、Kato 不等式的方向与用法、二维 bootstrap 的整体思路、
+指定力定理的压力符号与 $\operatorname{div}f=0$、代价定律的链式法则与 $\lambda^3$ 标度、
+推论 7.3 的 $s=1/2$ 阈值——都经两路独立复核通过。特别地，SymPy 的六项检查残差全为 0，
+干净目录重跑 \texttt{verify.py} 的输出与论文附录 B 逐位一致。
+
+\subsection*{五、无法核验的部分}
+
+（1）CIV 与 IKX 两篇 2026 年定理本身：只核对了摘要与假设，没有重证。
+（2）2026 年那份 166 页手稿与 Lean 工程：没有逐页审阅。
+（3）数值只核验恒等式，不核验任何先验估计；T3 的差分误差 $2.6\times10^{-6}$ 决定了它
+     看不见相对量级 $10^{-6}$ 的错误。
+（4）没有任何人类审稿人读过修订版。
+
+\subsection*{六、给"AI 写的数学"的审计协议}
+
+\begin{enumerate}[label=\textbf{R\arabic*.},leftmargin=2.2em]
+\item 两个角色不同的审稿人：一个整体核对，一个拿着"最可能出错清单"逐点核对；
+      \emph{不一致}比"一致"更有信息量。
+\item 逐个引理问：右边出现的是\emph{数据}的哪个范数？（F5、F6 都是这样暴露的）
+\item 不信任端点指数：凡是把 $L^q_t$ 定理写成 $\sup_t$ 的地方都要重推（F7）。
+\item 所有指数用符号计算重推一遍（F12 的 $3/2$ 因子，散文审稿永远看不出来）。
+\item 把"数值验证过"与"已证明"分开记账（F11）。
+\item 数值脚本换到空目录重跑。
+\item 每条被引用的定理都回到原始出处核对（F3）。
+\end{enumerate}
+
+\appendix
+
+\section{Reproduction}\label{app:rep}
+
+All commands below were run inside the sandbox that produced this report.
+
+\begin{verbatim}
+# 1. clean-room numerics (paper/verify.py -> empty directory)
+mkdir -p /tmp/cleanroom && cp paper/verify.py /tmp/cleanroom/
+cd /tmp/cleanroom && python3 -u verify.py
+
+# 2. symbolic checks (this report)
+cd report && python3 -u symbolic_checks.py
+
+# 3. rebuild paper, notes and this report
+cd paper && tectonic -X compile ns-forced-vs-unforced.tex
+cd ../notes && tectonic -X compile notes.tex
+cd ../report && tectonic -X compile report.tex
+\end{verbatim}
+
+Key numbers of the clean-room run (identical to Appendix~B of the paper):
+\begin{verbatim}
+T1  max |div v| = 2.096e-13   max |residual| = 0   max |div f| = 1.511e-10
+T2  lambda=2: 4.491e-12       lambda=3: 5.684e-12   (sup |R| = 1.029e+02)
+T3  sup|div U| = 8.882e-16    sup|F| = 3.262263
+    (T-t)^(3/2)||f|| = 1.153384 at t = 0.25, 0.5, 0.875
+T4  |int (u.grad w) w| = 6.574e-15  (relative 5.017e-19)
+\end{verbatim}
+
+\section{Symbolic verification output}\label{app:sym}
+
+The script \texttt{report/symbolic\_checks.py} (SymPy) re-derives six identities from their
+definitions. Verbatim output:
+
+{\footnotesize
+\begin{verbatim}
+========================================================================
+C1  chain rule  d/dt[lam*U(lam*x)] = lamdot*(U + y U'),  y = lam*x
+   U = exp(-Y**2/2)  ->  difference = 0
+   U = Y**3 - Y  ->  difference = 0
+   U = cos(Y)  ->  difference = 0
+   lamdot / lam^3 = a (must be a)
+
+========================================================================
+C2  exponent bookkeeping  lam^(3-3/q) = (2a(T-t))^(-(3/2)(1-1/q))
+   log-difference = 0 (must be 0)
+
+========================================================================
+C3  Kato-type inequality
+    Delta|w|^p - p|w|^(p-2) w Delta w = p(p-1)|w|^(p-2)|grad w|^2
+   p=2: residual = 0 (must be 0)
+   p=4: residual = 0 (must be 0)
+
+========================================================================
+C4  Prodi-Serrin / Young exponents
+   1/q + (q-2)/(2q) + 1/2      = 1
+   (1-3/q)*(2q/(q-3))          = 2
+   1/sigma + 1/sigma' , sigma=2q/(q+3), sigma'=2q/(q-3)  = 1
+
+========================================================================
+C5  vorticity of the Gaussian profile used in Cor. 7.3 / Thm 8.1
+   curl u = (-x**2 - y**2 + 2)*exp(-x**2/2 - y**2/2)
+   check  : 0
+
+========================================================================
+C6  2D vorticity identity  (u.grad)w = curl((u.grad)u)  for div-free u
+   div u = 0
+   (u.grad)w - curl((u.grad)u) = 0
+\end{verbatim}
+}
+
+\section*{References}
+\addcontentsline{toc}{section}{References}
+\begin{itemize}[leftmargin=1.6em]
+\item P. Constantin, M. Ignatova, V. Vicol, \emph{Regularity of asymptotically axisymmetric
+solutions to the 3D Navier--Stokes equations with analytic forcing}, arXiv:2609.20803 (2026).
+\item B. Ingimarson, I. Kukavica, Q. Xu, \emph{Regularity of asymptotically axisymmetric
+Navier--Stokes flows with rotationally invariant curl of the force}, arXiv:2610.25531 (2026).
+\item A. Bastounis, F. Circelli, A. C. Hansen, \emph{Navier--Stokes lost in translation},
+arXiv:2610.08144 (2026).
+\item J. Ne\v{c}as, M. R\r{u}\v{z}i\v{c}ka, V. \v{S}ver\'ak, \emph{On Leray's self-similar
+solutions of the Navier--Stokes equations}, Acta Math. 176 (1996), 283--294.
+\item L. Escauriaza, G. Seregin, V. \v{S}ver\'ak, \emph{$L_{3,\infty}$-solutions of the
+Navier--Stokes equations and backward uniqueness}, Russian Math. Surveys 58 (2003), 211--250.
+\item T.-P. Tsai, \emph{Self-similar solutions to the Navier--Stokes equations: a survey of
+recent results}, arXiv:1802.00038 (2018).
+\item Y. Giga, H. Sohr, \emph{Abstract $L^p$ estimates for the Cauchy problem \dots},
+J. Funct. Anal. 102 (1991), 72--94.
+\end{itemize}
+
+\end{document}
+
+
+
+
+
+

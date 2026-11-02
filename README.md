@@ -281,6 +281,56 @@ tectonic -X compile notes.tex # 或 xelatex notes.tex（需两次以生成目录
 
 ---
 
+## 十二、独立交叉验证报告（中英双语）
+
+- `report/report.pdf` — 11 页，英文正文 + 中文版（第 9 节），可直接阅读
+- `report/report.tex` — 源码（同样自带字体子集）
+- `report/symbolic_checks.py` / `report/symbolic.out` — SymPy 符号核验（六组恒等式，残差全为 0）
+- 审计对象：论文 v1 `c63c0a4`；修订后：论文 v2 `c873aa2`
+
+审计由三路独立完成：
+
+1. **两个独立"审稿人"模型实例**（只给文件，不给作者推理；一个整体核对，一个拿"最可能出错清单"逐点核对，互不通气）；
+2. **机器核验**：SymPy 从定义重推恒等式；`verify.py` 复制到空目录重跑（输出与论文附录 B 逐位一致）；重跑二维模拟；
+3. **文献核对**：Clay 四种提法、2026 年三篇 arXiv 摘要、NRS（经 Tsai 综述）、ESŠ。
+
+结果：**15 处问题，全部已修**。
+
+| 编号 | 位置 | 判定 | 问题 |
+|---|---|---|---|
+| F1 | 命题 2.1 | 错误 | 环面上 $x\mapsto\lambda x$ 只在 $\lambda\in\mathbb N$ 时保周期 |
+| F2 | 定理 3.1 证明 | 错误 | $\mathbb R^3$ 上 Stokes 算子无特征基；$B(u,u)$ 的 $H^{-2}$ 界指数错 |
+| F3 | 注 4.3 | 事实错误 | 误称 $L^\infty_tL^3$ 判据大初值未解决（实为 ESŠ 2003） |
+| F4 | 注 4.5 | 错误（小） | $L^q$ 恒等式漏外力项 |
+| F5 | 定理 5.1 | **严重** | $u_0\in H^1$ 推不出 $\omega_0\in L^p$（$p>2$），证明曾循环 |
+| F6 | 引理 5.2 | 不精确 | 缺 $\omega_0\in L^p$ 假设 |
+| F7 | 引理 5.4 | **严重** | 把极大正则性写成 $L^\infty_t$ 逐点形式（端点不成立） |
+| F8 | 定理 6.1 | 不精确 | 切片只给到 $\mathcal H^2$，应为 $\mathcal H^1$ |
+| F9 | 定理 7.1 | 不精确 | 缺压力归一化，逆命题不成立（差 $f-\nabla c$） |
+| F10 | 推论 7.2 | 错误 | "到所有光滑外力的双射"不成立（像集只含无散外力） |
+| F11 | 推论 7.3 | 未证明 | $F\not\equiv0$ 只靠浮点运算；现用 NRS 定理证明 |
+| F12 | 式 (8.5) | 错误 | 指数应为 $-\frac32(1-\frac1q)$ |
+| F13 | 推论 8.3 | 错误（假） | 离散自相似版本不成立，已删除 |
+| F14 | 推论 9.2 | 越界 | "不在 $C^2$ 中有界"推不出，已弱化 |
+| F15 | 定理 7.1 新颖性 | 夸大 | 指定力恒等式属 folklore，已撤回新颖性表述 |
+
+修订后仍然成立（经两路独立复核）：Prodi–Serrin、BKM、Kato 不等式、二维 bootstrap 思路、
+指定力定理的符号与 $\operatorname{div}f=0$、代价定律的链式法则与 $\lambda^3$ 标度、$s=1/2$ 阈值。
+
+无法核验：CIV/IKX 两篇 2026 年定理本身（只核对摘要）、2026 年 166 页手稿与 Lean 工程、
+数值对先验估计的支撑、以及人类审稿。
+
+复现：
+
+```bash
+mkdir -p /tmp/cleanroom && cp paper/verify.py /tmp/cleanroom/
+cd /tmp/cleanroom && python3 verify.py     # 干净目录重跑，应与 paper/verify.out 一致
+cd /workspace/report && python3 symbolic_checks.py
+tectonic -X compile report.tex
+```
+
+---
+
 ## 参考文献与延伸
 
 - Clay Mathematics Institute, *Millennium Prize Problems*: https://www.claymath.org/millennium-problems/
