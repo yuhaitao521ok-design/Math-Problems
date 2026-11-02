@@ -211,6 +211,38 @@ motive 理论的地基性猜想，绝大多数情形开放，且与黎曼猜想�
 
 ---
 
+## 十、配套论文
+
+本仓库同时收录一篇 20 页的论文（英文，含完整证明与数值核验）：
+
+- `paper/ns-forced-vs-unforced.pdf` — 正文（可直接阅读）
+- `paper/ns-forced-vs-unforced.tex` — LaTeX 源码
+- `paper/verify.py` — 四项数值核验脚本（仅依赖 numpy），输出见 `paper/verify.out`
+
+论文标题：*Forced versus unforced Navier–Stokes: what a prescribed force can and cannot prove*。
+
+它**不**声称解决千禧问题，而是把三件事严格分开，并给出完整证明：
+
+| 内容 | 位置 | 性质 |
+|---|---|---|
+| 2 维整体正则性 | Thm 5.1 | 完整证明（涡量 L^p 极大原理 + BKM） |
+| Prodi–Serrin 准则 | Thm 4.2 | 完整证明 |
+| Beale–Kato–Majda 准则 | Thm 4.6 | 完整证明 |
+| 指定力定理：任意光滑无散路径都是某个光滑力的解 | Thm 7.1 | 完整证明 |
+| 人造爆破：任意给定 T，可令 H^s (s>1/2) 范数爆破 | Cor 7.3 | 完整证明 |
+| 代价定律：精确自相似爆破必须 ‖f(t)‖_∞ ≈ (T−t)^{-3/2} | Thm 8.1 | 完整证明（等式） |
+| 2026 构造为何无法推广到无外力情形 | Thm 9.1 + Cor 9.2 | 引用 CIV 定理后推出 |
+
+复现方式：
+
+```bash
+cd paper
+python3 verify.py                      # 四项数值核验
+tectonic -X compile ns-forced-vs-unforced.tex   # 或任意 LaTeX 发行版
+```
+
+---
+
 ## 参考文献与延伸
 
 - Clay Mathematics Institute, *Millennium Prize Problems*: https://www.claymath.org/millennium-problems/

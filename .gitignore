@@ -1,0 +1,6 @@
+# build artifacts and local toolchain
+.bin/
+*.aux
+*.log
+*.xdv
+__pycache__/

@@ -1,0 +1,1345 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathrsfs}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\T}{\mathbb{T}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\dd}{\,\mathrm{d}}
+\newcommand{\Lp}{L^p}
+\newcommand{\Hs}{H^s}
+\newcommand{\Wsp}[2]{W^{#1,#2}}
+\newcommand{\norm}[1]{\lVert #1\rVert}
+\newcommand{\abs}[1]{\lvert #1\rvert}
+\newcommand{\ip}[2]{\langle #1,#2\rangle}
+\newcommand{\Div}{\operatorname{div}}
+\newcommand{\curl}{\operatorname{curl}}
+\newcommand{\Leray}{\mathbb{P}}
+\DeclareMathOperator{\sgn}{sgn}
+
+\title{Forced versus unforced Navier--Stokes:\\[2pt]
+\large what a prescribed force can and cannot prove}
+\author{Working notes prepared with an AI research assistant\\
+\small (classical statements are attributed; the arguments of
+\S\ref{sec:prescription}--\S\ref{sec:price} are proved in full)}
+\date{November 2, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This paper does \emph{not} prove the Navier--Stokes Millennium Prize Problem, and no
+statement below claims otherwise. Its purpose is to separate, rigorously, three things that
+were widely conflated in the 2026 discussion of a claimed AI proof: (i) the \emph{unforced}
+problem, which remains open; (ii) the \emph{forced} problem in the formulation of
+\cite{Fefferman2000}, which is a control problem and, in a precise sense, trivially solvable;
+and (iii) the quantitative price one has to pay, in the size of the force, to make a smooth
+flow blow up.
+
+We prove, completely and at the level of detail of a research paper:
+\begin{enumerate}[label=(\Alph*),leftmargin=*]
+\item the scaling law of the equations and of the force norm (Proposition~\ref{prop:scaling});
+\item a prescription theorem: \emph{every} smooth divergence-free path is the velocity field of
+      a solution for a suitable smooth force, and that force is unique
+      (Theorem~\ref{thm:prescription}); consequently the forced problem has no existence
+      content, only a quantitative one;
+\item a lower bound for that price: an exactly self-similar blow-up requires
+      $\norm{f(t)}_{\infty}\gtrsim (T-t)^{-3/2}$, so a bounded force cannot drive an exactly
+      self-similar blow-up (Theorem~\ref{thm:price}, Corollaries~\ref{cor:price} and~\ref{cor:discrete});
+\item the conditional regularity criteria of Prodi--Serrin (Theorem~\ref{thm:PS}) and
+      Beale--Kato--Majda (Theorem~\ref{thm:BKM}), with complete proofs, and the resulting
+      blow-up characterisation;
+\item global regularity in two space dimensions (Theorem~\ref{thm:2d}), with a complete proof
+      based on the $L^p$ maximum principle for vorticity and on Beale--Kato--Majda.
+\end{enumerate}
+We then explain, using the quoted theorem of Constantin--Ignatova--Vicol \cite{CIV2026} and its
+companion \cite{IKX2026}, why the 2026 construction cannot be converted into a proof for the
+unforced problem, and we recall the autoformalisation gap of \cite{BCH2026}: a verified Lean
+translation of a paper is not a verification of the paper. Section~\ref{sec:referee} gives a
+checklist for refereeing announced proofs of this kind.
+
+Nothing in \S\S\ref{sec:3d}--\ref{sec:2d} is new; those sections are included because a claim
+about what a proof must overcome is meaningful only if the surrounding theorems are stated
+with their hypotheses intact. The material that is not conveniently available in one place is
+\S\ref{sec:prescription}--\S\ref{sec:price} and Appendix~\ref{app:num}.
+\end{abstract}
+
+\tableofcontents
+
+\section{Introduction}\label{sec:intro}
+
+\subsection{The problem and its formulations}
+
+Let $\nu>0$ and let $\Omega$ be either $\R^3$ or the flat torus
+$\T^3=(\R/2\pi\mathbb{Z})^3$. The incompressible Navier--Stokes equations with a body force
+$f$ read
+\begin{equation}\label{eq:NS}
+\begin{cases}
+\partial_t u+(u\cdot\nabla)u-\nu\Delta u+\nabla p=f, & (x,t)\in\Omega\times(0,T),\\
+\Div u=0, & (x,t)\in\Omega\times(0,T),\\
+u(\cdot,0)=u_0, & x\in\Omega,
+\end{cases}
+\end{equation}
+together with decay at infinity when $\Omega=\R^3$ and with zero spatial mean when
+$\Omega=\T^3$.
+
+The Millennium Prize formulation \cite{Fefferman2000} asks, roughly, for a proof or disproof
+of the following alternative for $\Omega=\R^3$, $\nu>0$, $f\equiv0$ and smooth, compactly
+supported, divergence-free $u_0$: (A) global existence and smoothness of a unique solution;
+(B) breakdown, i.e.\ a smooth solution that ceases to be smooth in finite time. The official
+statement also permits a prescribed smooth force; the discussion in \cite{SciAm2026} refers to
+this variant as option (C). The distinction is not cosmetic. As
+Theorem~\ref{thm:prescription} shows, once the force is completely free the equation imposes
+no constraint on the \emph{path} of the flow: every smooth divergence-free path is a solution
+for a suitable force. What remains is a question about how large, and how regular, that force
+must be.
+
+\subsection{The 2026 claims, in the terms used below}
+
+We record the publicly reported facts that motivate this paper, with sources, and no more.
+On 8 September 2026 a 166-page manuscript together with a Lean formalisation was announced,
+claiming finite-time blow-up for \eqref{eq:NS} in the presence of a smooth external force
+\cite{OpenAI2026,WikipediaNS}. On 17 September 2026 Constantin, Ignatova and Vicol posted a
+theorem showing that, within the structural class of that construction, a force which is
+real-analytic in space (uniformly in time) forces the solution to be regular; in particular
+the force in that construction can neither vanish identically near the putative singular
+point nor be real-analytic there \cite{CIV2026}. A companion paper replaces spatial
+analyticity by rotational invariance of $\curl f$ \cite{IKX2026}. On 6 October 2026 a
+collection of 722 manuscripts, grouped into 372 ``result families'', was released; three were
+withdrawn the next day because of a sign error, leaving 719, and two further manuscripts were
+added on 26 October, leaving 721 manuscripts in 373 families
+\cite{OpenAIrepo2026,RW2026}. The Clay Mathematics Institute lists the problem as
+\emph{active} and states that its verification is deliberately unhurried \cite{ClayNS}. A
+separate analysis argues that the Lean formalisation of the Navier--Stokes manuscript does
+not correspond to its natural-language argument \cite{BCH2026}.
+
+Two numbers are frequently conflated in reporting: ``more than 700 problems'' refers to
+manuscripts and result families in the October release, whereas the September
+Navier--Stokes manuscript is not part of that collection, whose only Navier--Stokes family
+concerns universal computation in forced flows \cite{OpenAIrepo2026}. Neither number is a
+count of theorems.
+
+\subsection{What is proved here, and what is not}
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Statement & Status in this paper\\
+\midrule
+3D global regularity / blow-up, $f\equiv0$ & open; \emph{not} claimed\\
+2D global regularity & Theorem~\ref{thm:2d} (complete proof)\\
+Prodi--Serrin criterion & Theorem~\ref{thm:PS} (complete proof)\\
+Beale--Kato--Majda criterion & Theorem~\ref{thm:BKM} (complete proof)\\
+Prescription theorem for the forced problem & Theorem~\ref{thm:prescription} (complete proof)\\
+$\norm{f(t)}_\infty\gtrsim(T-t)^{-3/2}$ for exact self-similarity
+  & Theorem~\ref{thm:price} (complete proof)\\
+Consequence of \cite{CIV2026} for the 2026 construction & Corollary~\ref{cor:CIV}
+  (deduced from the quoted theorem)\\
+Lean verification versus natural-language proof & \S\ref{sec:lean} (quoted, not reproved)\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The logical status of the paper is therefore the following. We do not know whether the
+unforced problem has a negative answer; nobody does. We do know, and prove, exactly why the
+forced answer is easy, and why its easiness is paid for by a force that degenerates at the
+singular time.
+
+\subsection{Notation}
+
+$L^p=L^p(\Omega)$ and $H^s=H^s(\Omega)$ are the usual Lebesgue and Sobolev spaces;
+$L^p_tL^q_x=L^p(0,T;L^q(\Omega))$; $H^s_\sigma$ is the closure in $H^s$ of smooth
+divergence-free fields (with zero mean on $\T^3$). $\Leray$ denotes the Leray projector onto
+divergence-free fields, $A=-\Leray\Delta$ the Stokes operator, and
+$B(u,v)=\Leray\Div(u\otimes v)$. We write $\norm{\cdot}_p=\norm{\cdot}_{L^p}$ and
+$\norm{\cdot}=\norm{\cdot}_2$. Constants are denoted by $C$ and may change from line to
+line; dependence on parameters is indicated by subscripts. All functions are real-valued.
+
+\section{The equations, their scaling, and their energy structure}\label{sec:scaling}
+
+\subsection{Scaling}
+
+\begin{proposition}[Scaling of the forced equations]\label{prop:scaling}
+Let $(u,p,f)$ solve \eqref{eq:NS} on $\Omega\times(0,T)$ with viscosity $\nu>0$ and initial
+datum $u_0$. For $\lambda>0$ define
+\begin{equation}\label{eq:scaling}
+u_\lambda(x,t)=\lambda\,u(\lambda x,\lambda^2 t),\qquad
+p_\lambda(x,t)=\lambda^2 p(\lambda x,\lambda^2 t),\qquad
+f_\lambda(x,t)=\lambda^3 f(\lambda x,\lambda^2 t),
+\end{equation}
+for $0<t<T/\lambda^2$. Then $(u_\lambda,p_\lambda,f_\lambda)$ solves \eqref{eq:NS} on
+$\Omega\times(0,T/\lambda^2)$ with viscosity $\nu$, force $f_\lambda$ and initial datum
+$u_{0,\lambda}(x)=\lambda u_0(\lambda x)$. Conversely, if $(v,q,g)$ solves \eqref{eq:NS} with
+viscosity $\nu$ and $(v,q,g)=(u_\lambda,p_\lambda,f_\lambda)$, then $(u,p,f)$ solves
+\eqref{eq:NS}.
+\end{proposition}
+
+\begin{proof}
+Write $y=\lambda x$, $s=\lambda^2 t$ and $U(y,s)=u(y,s)$, so that $u_\lambda(x,t)=\lambda
+U(y,s)$ and, by the chain rule,
+$\partial_t u_\lambda=\lambda\cdot\lambda^2(\partial_sU)(y,s)=\lambda^3\partial_sU$,
+$\nabla_xu_\lambda=\lambda^2(\nabla_yU)(y,s)$ and
+$\Delta_xu_\lambda=\lambda^3(\Delta_yU)(y,s)$.
+For the convective term, $(u_\lambda\cdot\nabla_x)=\lambda U\cdot\lambda\nabla_y
+=\lambda^2(U\cdot\nabla_y)$, hence
+$(u_\lambda\cdot\nabla_x)u_\lambda=\lambda^3(U\cdot\nabla_y)U$. Similarly
+$\nabla_xp_\lambda=\lambda^3\nabla_yP$ and $\Div_xu_\lambda=\lambda^2(\Div_yU)=0$. Dividing
+the momentum equation by $\lambda^3$ gives the equation at $(y,s)$. The converse is the same
+computation with $\lambda$ replaced by $\lambda^{-1}$.
+\end{proof}
+
+The action of the scaling on norms is what makes the problem critical. From
+\eqref{eq:scaling}, for $1\le q\le\infty$,
+\begin{equation}\label{eq:normscaling}
+\norm{u_\lambda(t)}_{q}=\lambda^{1-3/q}\norm{u(\lambda^2t)}_{q},\qquad
+\norm{\nabla u_\lambda(t)}_{2}=\lambda^{1/2}\norm{\nabla u(\lambda^2t)}_{2},
+\end{equation}
+and
+\begin{equation}\label{eq:forcescaling}
+\norm{f_\lambda(t)}_{q}=\lambda^{3-3/q}\norm{f(\lambda^2t)}_{q},\qquad
+\norm{f_\lambda}_{L^1(0,T/\lambda^2;L^\infty)}=\lambda\,\norm{f}_{L^1(0,T;L^\infty)}.
+\end{equation}
+Thus $\norm{u}_{3}$ and $\norm{u}_{H^{1/2}}$ are invariant, $\norm{\nabla u}_{2}$ grows like
+$\lambda^{1/2}$, and a bounded force is \emph{not} small in scaling terms: its $L^\infty$ norm
+grows like $\lambda^{3}$. This single computation already explains why statements about the
+forced problem are statements about the size of $f$, not about the size of $u$.
+
+\subsection{Energy identity and its consequences}
+
+\begin{proposition}[Energy identity]\label{prop:energy}
+Let $u$ be a smooth solution of \eqref{eq:NS} on $\T^3\times[0,T]$, or a Schwartz-class
+solution on $\R^3\times[0,T]$. Then for $0\le t\le T$,
+\begin{equation}\label{eq:energy}
+\frac12\frac{\dd}{\dd t}\norm{u(t)}^2+\nu\norm{\nabla u(t)}^2=\ip{f(t)}{u(t)}.
+\end{equation}
+Consequently
+\begin{equation}\label{eq:energybound}
+\norm{u(t)}^2\le e^{\nu t}\norm{u_0}^2+\frac1\nu\int_0^te^{\nu(t-s)}\norm{f(s)}^2\dd s .
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Take the $L^2$ scalar product of the momentum equation with $u$ and integrate by parts. The
+pressure term vanishes because $\Div u=0$ (on $\T^3$ by periodicity, on $\R^3$ by decay), and
+the convective term vanishes because
+\[
+\int_\Omega (u\cdot\nabla)u\cdot u\dd x
+=\frac12\int_\Omega u\cdot\nabla\abs{u}^2\dd x
+=-\frac12\int_\Omega(\Div u)\abs{u}^2\dd x=0 .
+\]
+The viscous term gives $\nu\norm{\nabla u}^2$. This is \eqref{eq:energy}. For
+\eqref{eq:energybound}, estimate $\ip{f}{u}\le\norm{f}\norm{u}$ and use
+$2\norm{f}\norm{u}\le\nu^{-1}\norm{f}^2+\nu\norm{u}^2$, so that with $y=\norm{u}^2$,
+$y'\le\nu y+\nu^{-1}\norm{f}^2$; Gronwall's lemma gives \eqref{eq:energybound}.
+\end{proof}
+
+\begin{remark}[What the energy controls]\label{rem:energy}
+Estimate \eqref{eq:energybound} gives, for $f\in L^2(0,T;L^2)$,
+\[
+u\in L^\infty(0,T;L^2)\cap L^2(0,T;H^1),
+\]
+with bounds depending only on $\norm{u_0}$, $\norm{f}_{L^2_tL^2_x}$ and $T$. It gives no
+bound on $\norm{\nabla u}_\infty$, on $\norm{u}_\infty$, or on any critical norm. In three
+dimensions all three are exactly what the known continuation criteria require
+(\S\ref{sec:3d}), and none of them is available from the energy alone. In two dimensions the
+situation is different, because the vorticity equation is a transport equation with no
+stretching term (\S\ref{sec:2d}).
+\end{remark}
+
+\section{Weak solutions: what Leray and Hopf already give}\label{sec:weak}
+
+\begin{theorem}[Leray \cite{Leray1934}, Hopf \cite{Hopf1951}]\label{thm:lerayhopf}
+Let $\Omega\in\{\R^3,\T^3\}$, $\nu>0$, $u_0\in L^2_\sigma(\Omega)$ and
+$f\in L^2(0,T;H^{-1}(\Omega))$. Then there exists
+\[
+u\in L^\infty(0,T;L^2_\sigma)\cap L^2(0,T;H^1_\sigma)
+\]
+which satisfies \eqref{eq:NS} in the sense of distributions and the energy inequality
+\begin{equation}\label{eq:energyineq}
+\frac12\norm{u(t)}^2+\nu\int_0^t\norm{\nabla u(s)}^2\dd s
+\le\frac12\norm{u_0}^2+\int_0^t\ip{f(s)}{u(s)}\dd s
+\end{equation}
+for almost every $t\in[0,T]$ (and for every $t$ after a modification on a null set).
+\end{theorem}
+
+\begin{proof}[Proof, in the form needed later]
+We recall the standard Galerkin argument because the uniform estimates are used in
+\S\ref{sec:2d} and \S\ref{sec:3d}.
+
+\emph{Step 1 (Galerkin system).} Let $(\varphi_k)_{k\ge1}$ be the eigenfunctions of the
+Stokes operator $A$ on $\Omega$, orthonormal in $L^2_\sigma$ with eigenvalues
+$0<\lambda_1\le\lambda_2\le\cdots\to\infty$ (on $\T^3$ restricted to zero mean). Let
+$V_m=\operatorname{span}\{\varphi_1,\dots,\varphi_m\}$ and look for
+$u_m(t)=\sum_{k\le m}c_{km}(t)\varphi_k$ solving
+\[
+\ip{\partial_tu_m}{\varphi}+\nu\ip{\nabla u_m}{\nabla\varphi}
++\ip{(u_m\cdot\nabla)u_m}{\varphi}=\ip{f}{\varphi},
+\qquad \varphi\in V_m,
+\]
+with $u_m(0)=\Leray_m u_0$. This is a quadratic ODE system with smooth coefficients, hence
+has a local solution; the estimate below makes it global in $[0,T]$.
+
+\emph{Step 2 (uniform energy estimate).} Taking $\varphi=u_m$ and using the cancellation of
+Proposition~\ref{prop:energy},
+\[
+\frac12\frac{\dd}{\dd t}\norm{u_m}^2+\nu\norm{\nabla u_m}^2=\ip{f}{u_m}
+\le\norm{f}_{H^{-1}}\norm{\nabla u_m},
+\]
+hence, after absorbing and integrating,
+\begin{equation}\label{eq:galerkin}
+\sup_{0\le t\le T}\norm{u_m(t)}^2+\nu\int_0^T\norm{\nabla u_m}^2\dd t
+\le C\bigl(\norm{u_0}^2+\norm{f}_{L^2(0,T;H^{-1})}^2\bigr),
+\end{equation}
+with $C$ independent of $m$.
+
+\emph{Step 3 (compactness).} By \eqref{eq:galerkin}, $(u_m)$ is bounded in
+$L^\infty(0,T;L^2_\sigma)\cap L^2(0,T;H^1_\sigma)$, and $\partial_tu_m$ is bounded in
+$L^2(0,T;H^{-2})$ (bound the three terms of the equation separately, using
+$\norm{B(u_m,u_m)}_{H^{-2}}\le C\norm{u_m}\norm{\nabla u_m}$). By the Aubin--Lions lemma,
+after a subsequence $u_m\to u$ strongly in $L^2(0,T;L^2_{\mathrm{loc}})$ and weakly in the
+two spaces above; the limit is divergence-free and satisfies the equation.
+
+\emph{Step 4 (energy inequality).} The Galerkin identity gives, for every $m$ and a.e.\ $t$,
+\[
+\frac12\norm{u_m(t)}^2+\nu\int_0^t\norm{\nabla u_m}^2
+=\frac12\norm{u_m(0)}^2+\int_0^t\ip{f}{u_m}.
+\]
+The norm is weakly lower semicontinuous and $\ip{f}{u_m}\to\ip{f}{u}$ because
+$u_m\to u$ strongly in $L^2_tL^2_x$; passing to the limit gives \eqref{eq:energyineq}.
+\end{proof}
+
+\begin{remark}\label{rem:weak}
+Two points matter for the rest of the paper. First, Theorem~\ref{thm:lerayhopf} is an
+\emph{existence} theorem: it produces a solution for every divergence-free $L^2$ datum and
+every $f\in L^2_tH^{-1}_x$. It says nothing about uniqueness or smoothness. Second, in two
+dimensions the weak solution is unique and, as Theorem~\ref{thm:2d} shows, smooth for $t>0$;
+in three dimensions both properties are open, and the Millennium Problem is precisely the
+question whether smoothness can fail.
+\end{remark}
+
+\section{Conditional regularity in three dimensions}\label{sec:3d}
+
+The results of this section are classical. They are stated with full hypotheses and proved,
+because they are exactly the statements that a claimed proof of the unforced problem must
+either establish or circumvent.
+
+\begin{lemma}[Local existence and continuation]\label{lem:local}
+Let $\Omega\in\{\R^3,\T^3\}$, $s>1/2$, $u_0\in H^s_\sigma$ and
+$f\in L^2(0,T;H^{s-1})$. There exist $T_0=T_0(\norm{u_0}_{H^s})>0$ and a unique
+\[
+u\in C([0,T_0];H^s_\sigma)\cap L^2(0,T_0;H^{s+1}),\qquad
+\partial_tu\in L^2(0,T_0;H^{s-1}),
+\]
+solving \eqref{eq:NS}. If $T^*$ is the maximal time of existence, then either $T^*=\infty$ or
+\begin{equation}\label{eq:blowupcrit}
+\limsup_{t\to T^*}\norm{u(t)}_{H^s}=\infty .
+\end{equation}
+Moreover, for $s=1$ the lifespan can be chosen as
+$T_0=c\,(1+\norm{\nabla u_0})^{-4}$ with $c>0$ absolute, and the solution depends
+continuously on the data.
+\end{lemma}
+
+\begin{proof}[Reference]
+This is Kato's theory \cite{Kato1984}; see also \cite[Chapter 3]{RRST2001} and
+\cite[Chapter 5]{Lemarie2016}. The key point for us is the uniformity of $T_0$: it depends
+only on the $H^s$ norm of the data, so that a uniform $H^s$ bound on $[0,T^*)$ permits
+restarting at $T^*$ and iterating. We use this in the proofs of
+Theorems~\ref{thm:PS} and~\ref{thm:BKM}.
+\end{proof}
+
+\subsection{The Prodi--Serrin criterion}
+
+\begin{theorem}[Prodi \cite{Prodi1959}, Serrin \cite{Serrin1962}]\label{thm:PS}
+Let $u$ be the smooth solution of \eqref{eq:NS} on $[0,T^*)$ with
+$f\in L^2(0,T^*;L^2)$ and let $q>3$, $p\in[2,\infty]$ satisfy
+\begin{equation}\label{eq:PScond}
+\frac2p+\frac3q\le1 .
+\end{equation}
+If $u\in L^p(0,T^*;L^q)$, then $T^*=\infty$ (or, if the solution is considered on a bounded
+interval, it extends beyond $T^*$).
+\end{theorem}
+
+\begin{proof}
+Let $y(t)=\norm{\nabla u(t)}^2$ for $t<T^*$. We test the momentum equation with $-\Delta u$:
+\[
+\frac12y'(t)+\nu\norm{\Delta u}^2
+=\int_\Omega(u\cdot\nabla)u\cdot\Delta u\dd x-\int_\Omega f\cdot\Delta u\dd x .
+\]
+(The pressure term disappears because $\Div u=0$.) We bound the two terms separately.
+
+\emph{The convective term.} By H\"older's inequality with exponents $q$,
+$r=2q/(q-2)$ and $2$,
+\[
+\abs{\int(u\cdot\nabla)u\cdot\Delta u}
+\le\norm{u}_{q}\norm{\nabla u}_{r}\norm{\Delta u}_{2},
+\]
+which is legitimate because $1/q+1/r+1/2=1$. The Gagliardo--Nirenberg inequality in
+$\R^3$ (Appendix~\ref{app:ineq}) gives, with $\theta=3/q\in(0,1)$,
+\[
+\norm{\nabla u}_{r}\le C\norm{\nabla u}_{2}^{1-\theta}\norm{\Delta u}_{2}^{\theta}.
+\]
+Hence
+\[
+\abs{\int(u\cdot\nabla)u\cdot\Delta u}
+\le C\norm{u}_{q}\norm{\nabla u}_{2}^{1-3/q}\norm{\Delta u}_{2}^{1+3/q}.
+\]
+By Young's inequality $ab\le\eps b^{\sigma}+C_\eps a^{\sigma'}$ with
+$\sigma=2/(1+3/q)=2q/(q+3)$ and $\sigma'=2q/(q-3)$,
+\[
+\abs{\int(u\cdot\nabla)u\cdot\Delta u}
+\le\frac{\nu}{2}\norm{\Delta u}^2
++C_\nu\norm{u}_{q}^{2q/(q-3)}\norm{\nabla u}^2 .
+\]
+
+\emph{The force term.} $\abs{\int f\cdot\Delta u}\le\frac{\nu}{4}\norm{\Delta u}^2
++\frac1\nu\norm{f}^2$.
+
+Combining, and discarding the non-negative term $\frac{\nu}{4}\norm{\Delta u}^2$,
+\begin{equation}\label{eq:PSode}
+y'(t)\le C_\nu\norm{u(t)}_{q}^{2q/(q-3)}y(t)+\frac{2}{\nu}\norm{f(t)}^2 .
+\end{equation}
+Gronwall's lemma gives, for $t<T^*$,
+\begin{equation}\label{eq:PSgronwall}
+y(t)\le\Bigl(y(0)+\frac2\nu\int_0^t\norm{f}^2\Bigr)
+\exp\Bigl(C_\nu\int_0^t\norm{u(s)}_{q}^{2q/(q-3)}\dd s\Bigr).
+\end{equation}
+It remains to see that the exponent is finite. Put $s_0=2q/(q-3)$. Condition
+\eqref{eq:PScond} is equivalent to $s_0\le p$, and H\"older's inequality in time gives
+\[
+\int_0^{T^*}\norm{u}_{q}^{s_0}\dd s
+\le(T^*)^{1-s_0/p}\Bigl(\int_0^{T^*}\norm{u}_{q}^{p}\dd s\Bigr)^{s_0/p}
+\le(T^*)^{1-s_0/p}\norm{u}_{L^p(0,T^*;L^q)}^{s_0}<\infty .
+\]
+Therefore $\sup_{0\le t<T^*}\norm{\nabla u(t)}\le M<\infty$. By
+Lemma~\ref{lem:local}, the $H^1$ solution can be restarted at any time $t_0<T^*$ with a
+lifespan bounded below by $c(1+M)^{-4}$, so finitely many steps cover $[0,T^*]$ and extend
+the solution beyond $T^*$. Hence $T^*=\infty$.
+\end{proof}
+
+\begin{remark}[The critical case $q=3$]\label{rem:q3}
+At $q=3$ the exponent $s_0=2q/(q-3)$ is infinite and the argument breaks down; the
+corresponding statement (smallness of $\norm{u}_{L^\infty_tL^3}$, or of
+$\norm{u}_{L^3}$ globally) is the borderline case and is open for large data. This is the
+analytic expression of the fact that $L^3$ is the scaling-invariant Lebesgue space
+(\S\ref{sec:scaling}).
+\end{remark}
+
+\subsection{A priori $L^q$ bounds}
+
+\begin{corollary}[An a priori $L^q$ bound suffices]\label{cor:subcritical}
+Let $q>3$ and suppose that the smooth solution of \eqref{eq:NS} on $[0,T^*)$ satisfies
+\begin{equation}\label{eq:Lqbound}
+\sup_{0\le t<T^*}\norm{u(t)}_{q}=:M_q<\infty .
+\end{equation}
+Then $T^*=\infty$.
+\end{corollary}
+
+\begin{proof}
+Apply Theorem~\ref{thm:PS} with $p=\infty$: condition \eqref{eq:PScond} reads $3/q\le1$,
+which holds strictly because $q>3$, and $u\in L^\infty(0,T^*;L^q)$ by \eqref{eq:Lqbound}.
+\end{proof}
+
+\begin{remark}\label{rem:subcritical}
+Corollary~\ref{cor:subcritical} is the quantitative content of the word ``subcritical'': a
+uniform bound in any $L^q$ with $q>3$ rules out blow-up. The corollary is, however, only a
+conditional statement, and it is worth being explicit about why the bound \eqref{eq:Lqbound}
+is not available for free. Testing the equation with $u\abs{u}^{q-2}$ gives
+\[
+\frac1q\frac{\dd}{\dd t}\norm{u}_{q}^{q}
+=\nu\int_\Omega\abs{u}^{q-2}u\cdot\Delta u\dd x
+-\int_\Omega\abs{u}^{q-2}u\cdot\nabla p\dd x ,
+\]
+the convective term integrating to zero because $\Div u=0$. The viscous term is non-positive
+(Appendix~\ref{app:ineq}), but the pressure term equals
+$\int_\Omega p\,\Div(\abs{u}^{q-2}u)=\int_\Omega p\,u\cdot\nabla\abs{u}^{q-2}$, which is a
+nonlinear term with no sign and does not vanish in general. In particular, unlike the heat equation, the
+Navier--Stokes flow is not known to decrease its $L^q$ norms for $q>2$, and no bound of the
+form \eqref{eq:Lqbound} follows from the energy inequality. Obtaining such a bound is
+equivalent to a substantial part of the problem.
+\end{remark}
+
+
+\subsection{The Beale--Kato--Majda criterion}
+
+\begin{theorem}[Beale--Kato--Majda \cite{BKM1984}]\label{thm:BKM}
+Let $\Omega=\R^3$ or $\T^3$, $s>5/2$, and let $u$ be the smooth solution of \eqref{eq:NS} on
+$[0,T^*)$ with $f\in L^1(0,T^*;H^s)$. If
+\begin{equation}\label{eq:BKMcond}
+\int_0^{T^*}\norm{\nabla u(t)}_{\infty}\dd t=:L<\infty,
+\end{equation}
+then $T^*=\infty$.
+\end{theorem}
+
+\begin{proof}
+Apply the fractional derivative $\Lambda^s=(-\Delta)^{s/2}$ to the equation, take the $L^2$
+scalar product with $\Lambda^su$, and use that $\Lambda^s\nabla p$ is orthogonal to
+$\Lambda^su$ (because $\Div u=0$):
+\[
+\frac12\frac{\dd}{\dd t}\norm{\Lambda^su}^2+\nu\norm{\Lambda^s\nabla u}^2
+=-\ip{[\Lambda^s,u\cdot\nabla]u}{\Lambda^su}+\ip{\Lambda^sf}{\Lambda^su}.
+\]
+The Kato--Ponce commutator estimate (Appendix~\ref{app:ineq}) gives, for $s>5/2$,
+\[
+\abs{\ip{[\Lambda^s,u\cdot\nabla]u}{\Lambda^su}}
+\le C\norm{\nabla u}_{\infty}\norm{\Lambda^su}^2 .
+\]
+Hence, with $Y(t)=\norm{u(t)}_{H^s}$,
+\[
+Y'(t)\le C\norm{\nabla u(t)}_{\infty}Y(t)+\norm{f(t)}_{H^s}.
+\]
+Gronwall's lemma yields
+\[
+\sup_{0\le t<T^*}\norm{u(t)}_{H^s}
+\le\Bigl(\norm{u_0}_{H^s}+\int_0^{T^*}\norm{f}_{H^s}\dd t\Bigr)e^{CL}<\infty .
+\]
+By the continuation part of Lemma~\ref{lem:local} (with $H^s$ local existence and lifespan
+depending only on the $H^s$ norm), the solution extends beyond $T^*$.
+\end{proof}
+
+\begin{corollary}[Structure of a blow-up]\label{cor:blowup}
+Let $T^*<\infty$ be the maximal time of the smooth solution of \eqref{eq:NS} with
+$f\in L^1(0,T^*;H^s)$, $s>5/2$. Then
+\begin{equation}\label{eq:blowup}
+\int_0^{T^*}\norm{\nabla u(t)}_{\infty}\dd t=\infty,
+\qquad
+\limsup_{t\to T^*}\norm{\nabla u(t)}_{\infty}=\infty,
+\qquad
+\limsup_{t\to T^*}\norm{u(t)}_{H^s}=\infty .
+\end{equation}
+\end{corollary}
+
+\begin{proof}
+The first two assertions are the contrapositive of Theorem~\ref{thm:BKM}; the third is
+\eqref{eq:blowupcrit}.
+\end{proof}
+
+\begin{remark}\label{rem:BKMmeaning}
+Corollary~\ref{cor:blowup} is the precise statement of what a finite-time singularity would
+have to look like: the gradient must become unbounded, and not merely integrable, in
+$L^\infty$; equivalently, the solution must leave every subcritical Sobolev space. It also
+shows why a blow-up construction has to fight the scaling: to produce
+$\norm{\nabla u(t)}_\infty\to\infty$ one needs a mechanism that defeats the diffusive
+smoothing at scales comparable to the Kolmogorov length, and no such mechanism is known for
+$f\equiv0$.
+\end{remark}
+
+\section{Two dimensions: a complete regularity proof}\label{sec:2d}
+
+The two-dimensional case is the one place where the programme of
+\S\ref{sec:3d} succeeds completely, and the reason is structural: in two dimensions the
+vorticity equation has no stretching term, and the vorticity is transported and diffused
+rather than amplified. We give the full argument because it shows exactly which quantity
+replaces $\norm{\nabla u}_\infty$ in the continuation criterion, and why that quantity fails
+to be controlled in three dimensions.
+
+Throughout this section $\Omega=\T^2$, $\nu>0$, $u_0\in H^1_\sigma(\T^2)$ and
+$f\in C^\infty(\T^2\times[0,\infty))$. We write
+\[
+\omega=\partial_1u_2-\partial_2u_1,\qquad g=\partial_1f_2-\partial_2f_1 .
+\]
+
+\begin{theorem}[Global regularity in 2D; Ladyzhenskaya {\rm\cite{Ladyzhenskaya1969}}]
+\label{thm:2d}
+Under the above hypotheses there is a unique solution
+\[
+u\in C([0,\infty);H^1_\sigma(\T^2))\cap C^\infty(\T^2\times(0,\infty))
+\]
+of \eqref{eq:NS}. It satisfies the energy identity \eqref{eq:energy} for all $t\ge0$, and
+\[
+\sup_{t\in[0,T]}\norm{\nabla u(t)}_{p}<\infty
+\qquad\text{for every }T<\infty,\ p\in[2,\infty).
+\]
+\end{theorem}
+
+\begin{lemma}[Vorticity: transport, diffusion, and $L^p$ bounds]\label{lem:vorticity}
+Let $u$ be a smooth solution on $[0,T^*)$. Then $\omega$ solves
+\begin{equation}\label{eq:vorticity}
+\partial_t\omega+(u\cdot\nabla)\omega=\nu\Delta\omega+g,
+\end{equation}
+and for every $p\in[2,\infty]$,
+\begin{equation}\label{eq:vortbound}
+\norm{\omega(t)}_{p}\le\norm{\omega_0}_{p}+\int_0^t\norm{g(s)}_{p}\dd s,
+\qquad 0\le t<T^*.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Equation \eqref{eq:vorticity} follows by applying $\curl$ to the momentum equation and using
+$\curl((u\cdot\nabla)u)=u\cdot\nabla\omega$ for divergence-free $u$ in two dimensions, and
+$\curl\nabla p=0$.
+
+For $2\le p<\infty$, multiply \eqref{eq:vorticity} by $\omega\abs{\omega}^{p-2}$ and
+integrate over $\T^2$:
+\[
+\frac1p\frac{\dd}{\dd t}\norm{\omega}_{p}^{p}
+=\nu\int_{\T^2}\Delta\omega\,\omega\abs{\omega}^{p-2}\dd x
++\int_{\T^2}g\,\omega\abs{\omega}^{p-2}\dd x,
+\]
+the transport term integrating to zero because $\Div u=0$ and $\nabla\abs{\omega}^{p}=p\abs{\omega}^{p-2}\omega\nabla\omega$. For the
+diffusion term we use Kato's inequality
+$\Delta\abs{\omega}^{p}\ge p\abs{\omega}^{p-2}\omega\Delta\omega$, valid for $p\ge2$ in the
+sense of distributions (Appendix~\ref{app:ineq}); since $\int_{\T^2}\Delta\abs{\omega}^{p}=0$,
+\[
+\nu\int_{\T^2}\Delta\omega\,\omega\abs{\omega}^{p-2}\dd x
+\le\frac{\nu}{p}\int_{\T^2}\Delta\abs{\omega}^{p}\dd x=0 .
+\]
+The forcing term is bounded by $\norm{g}_{p}\norm{\omega}_{p}^{p-1}$. Hence
+$\frac{\dd}{\dd t}\norm{\omega}_{p}\le\norm{g}_{p}$, which integrates to \eqref{eq:vortbound}
+for $p<\infty$. For $p=\infty$ we use
+$\norm{\omega}_{p}\uparrow\norm{\omega}_{\infty}$ and the monotone convergence theorem
+applied to $\norm{g}_{p}\uparrow\norm{g}_{\infty}$ (both functions are in
+$L^\infty$ on the torus), and pass to the limit in \eqref{eq:vortbound}.
+\end{proof}
+
+\begin{lemma}[Biot--Savart and Sobolev in 2D]\label{lem:biot}
+Let $\omega\in L^p(\T^2)$ with zero mean and let $u=\nabla^\perp(-\Delta)^{-1}\omega$, i.e.
+$u=(-\partial_2,\partial_1)(-\Delta)^{-1}\omega$. Then $\curl u=\omega$, $\Div u=0$, and for
+every $p\in(1,\infty)$,
+\begin{equation}\label{eq:biot}
+\norm{\nabla u}_{p}\le C_p\norm{\omega}_{p}.
+\end{equation}
+Moreover $W^{1,p}(\T^2)\subset L^\infty(\T^2)$ for $p>2$, and
+$W^{2,p}(\T^2)\subset W^{1,\infty}(\T^2)$ for $p>2$.
+\end{lemma}
+
+\begin{proof}
+The operator $\nabla\nabla^\perp(-\Delta)^{-1}$ has symbol
+$-\xi\xi^\perp/\abs{\xi}^2$, a matrix of Riesz transforms, which is bounded on $L^p$ for
+$1<p<\infty$ (Appendix~\ref{app:ineq}). The Sobolev embeddings in two dimensions are
+standard: $W^{1,p}\subset L^\infty$ for $p>2$ and $W^{2,p}\subset C^{1,1-2/p}\subset
+W^{1,\infty}$ for $p>2$.
+\end{proof}
+
+\begin{lemma}[Maximal regularity for the Stokes system]\label{lem:maxreg}
+Let $p\in(1,\infty)$, $F\in L^\infty(0,T;L^p(\T^2))$, $u_0\in L^p_\sigma(\T^2)$, and let
+$u$ solve $\partial_tu-\nu\Delta u+\nabla p=F$, $\Div u=0$, $u(0)=u_0$. Then for every
+$\delta\in(0,T)$,
+\begin{equation}\label{eq:maxreg}
+\sup_{\delta\le t\le T}\bigl(\norm{u(t)}_{W^{2,p}}+\norm{\partial_tu(t)}_{p}\bigr)
+\le C(\delta,p,\nu,T)\bigl(\norm{u_0}_{p}+\norm{F}_{L^\infty(0,T;L^p)}\bigr).
+\end{equation}
+\end{lemma}
+
+\begin{proof}[Reference]
+This is the maximal $L^p$ regularity of the Stokes semigroup on a torus
+\cite{GigaSohr1991}; the constant blows up as $\delta\downarrow0$ like $\delta^{-1}$, which is
+harmless for us because the solution is smooth on $[0,\delta/2]$ by
+Lemma~\ref{lem:local}.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:2d}]
+\emph{Step 1 (local existence).} By Lemma~\ref{lem:local} with $s=1$ there is a unique smooth
+solution on a maximal interval $[0,T^*)$.
+
+\emph{Step 2 (uniform vorticity bounds).} By Lemma~\ref{lem:vorticity}, for every
+$p\in[2,\infty]$ and $0\le t<T^*$,
+\[
+\norm{\omega(t)}_{p}\le\norm{\omega_0}_{p}+\int_0^{t}\norm{g(s)}_{p}\dd s
+\le\norm{\omega_0}_{p}+T^*\norm{g}_{L^\infty(0,T^*;L^p)}=:M_p .
+\]
+In particular $\omega\in L^\infty(0,T^*;L^p)$ for every $p<\infty$.
+
+\emph{Step 3 (velocity bounds).} Fix $p>2$. By Lemma~\ref{lem:biot},
+$\nabla u\in L^\infty(0,T^*;L^p)$ with norm at most $C_pM_p$, hence
+$u\in L^\infty(0,T^*;L^\infty)$ and therefore
+\[
+B(u,u)=\Leray\Div(u\otimes u)\in L^\infty(0,T^*;L^p),
+\qquad
+\norm{B(u,u)}_{p}\le C\norm{u}_{\infty}\norm{\nabla u}_{p}.
+\]
+
+\emph{Step 4 (bootstrap to a gradient bound).} Apply Lemma~\ref{lem:maxreg} to the equation
+$\partial_tu-\nu\Delta u+\nabla p=-B(u,u)+f$ with $F=-B(u,u)+f\in L^\infty(0,T^*;L^p)$. For
+every $\delta\in(0,T^*)$,
+\[
+\sup_{\delta\le t<T^*}\norm{u(t)}_{W^{2,p}}<\infty,
+\]
+so by Lemma~\ref{lem:biot}, $\nabla u\in L^\infty(\delta,T^*;L^\infty)$. Since $u$ is smooth
+on $[0,\delta]$, we conclude
+\[
+\int_0^{T^*}\norm{\nabla u(t)}_{\infty}\dd t<\infty .
+\]
+
+\emph{Step 5 (continuation).} Theorem~\ref{thm:BKM} applies in two dimensions as well (the
+commutator estimate is dimension-free and $s>1+2/2=2$ suffices), so $T^*=\infty$. The energy
+identity follows from smoothness by Proposition~\ref{prop:energy}, and the bounds on
+$\norm{\nabla u}_p$ follow from Steps 2--3.
+\end{proof}
+
+\begin{proposition}[Uniqueness in 2D]\label{prop:uniqueness2d}
+Let $u,v$ be two Leray--Hopf solutions of \eqref{eq:NS} on $\T^2$ with the same data in
+$L^2_\sigma$ and the same $f\in L^2(0,T;L^2)$. Then $u=v$.
+\end{proposition}
+
+\begin{proof}
+Let $w=u-v$ and $q$ the corresponding pressure. Then
+$\partial_tw+(u\cdot\nabla)w+(w\cdot\nabla)v-\nu\Delta w+\nabla q=0$ and $\Div w=0$. Testing
+with $w$,
+\[
+\frac12\frac{\dd}{\dd t}\norm{w}^2+\nu\norm{\nabla w}^2
+=-\int_{\T^2}(w\cdot\nabla)v\cdot w\dd x
+\le\norm{w}_{4}^2\norm{\nabla v}_2
+\le C\norm{w}\norm{\nabla w}\norm{\nabla v}_2,
+\]
+where we used the two-dimensional Ladyzhenskaya inequality
+$\norm{w}_4^2\le C\norm{w}\norm{\nabla w}$ (Appendix~\ref{app:ineq}). Hence
+\[
+\frac{\dd}{\dd t}\norm{w}^2+\nu\norm{\nabla w}^2\le\frac{C}{\nu}\norm{\nabla v}_2^2\norm{w}^2 .
+\]
+Since $\norm{\nabla v}_2\in L^2(0,T)$, Gronwall's lemma gives $w=0$.
+\end{proof}
+
+\begin{remark}[Where the argument stops in 3D]\label{rem:2d3d}
+Three ingredients are used in the proof of Theorem~\ref{thm:2d} and fail in 3D.
+(i) The vorticity equation has no stretching term, so \eqref{eq:vortbound} is linear; in 3D
+the term $(\omega\cdot\nabla)u$ is present and produces the vortex-stretching term
+$\int(\omega\cdot\nabla)u\cdot\omega$, which has no sign.
+(ii) The two-dimensional Sobolev embeddings in Lemma~\ref{lem:biot} give $L^\infty$ from $L^p$
+gradients at fixed $p>2$; in 3D, $W^{1,p}\subset L^\infty$ requires $p>3$, and the vorticity
+bound does not deliver $p>3$ from the energy.
+(iii) In 3D the analogue of \eqref{eq:vortbound} is the enstrophy balance, whose right-hand
+side contains the vortex-stretching term $\int(\omega\cdot\nabla)u\cdot\omega$; there is no
+sign, and no $L^p$ bound for $p>3$ follows. Since $W^{1,p}\subset L^\infty$ in 3D needs
+$p>3$, the 2D bootstrap has no counterpart.
+None of these obstructions is a proof of anything; they merely explain why the 2D argument
+cannot be transplanted.
+\end{remark}
+
+\section{Partial regularity: what is known unconditionally}\label{sec:partial}
+
+The strongest unconditional statement in 3D is not regularity but \emph{partial} regularity.
+
+\begin{theorem}[Caffarelli--Kohn--Nirenberg {\rm\cite{CKN1982}}]\label{thm:CKN}
+Let $u$ be a suitable weak solution of \eqref{eq:NS} on $\R^3\times(0,T)$ with
+$f\in L^2(0,T;L^2_{\mathrm{loc}})$. Then the set $\Sigma\subset\R^3\times(0,T)$ of points in
+whose neighbourhood $u$ is unbounded has zero one-dimensional parabolic Hausdorff measure:
+$\mathcal{P}^1(\Sigma)=0$. In particular, for almost every $t\in(0,T)$ the set
+$\{x:(x,t)\in\Sigma\}$ has zero two-dimensional Hausdorff measure.
+\end{theorem}
+
+The proof rests on an $\eps$-regularity criterion: there is an absolute $\eps_*>0$ such that a
+suitable weak solution satisfying
+\[
+\limsup_{r\to0}\frac1r\int_{Q_r(x_0,t_0)}\abs{\nabla u}^2\dd x\dd t<\eps_*
+\]
+is H\"older continuous in a neighbourhood of $(x_0,t_0)$; here $Q_r$ is the parabolic
+cylinder of radius $r$. Theorem~\ref{thm:CKN} then follows from a covering argument.
+
+\begin{remark}[What partial regularity does and does not give]\label{rem:CKN}
+Theorem~\ref{thm:CKN} is compatible with both answers to the Millennium Problem: it says that
+a singular set, if non-empty, is small, not that it is empty. It gives no bound on the number
+of singular points, no stability, and no information at the critical scale. It cannot be used
+to rule out the blow-up announced in 2026, nor to support it: a single point $(x_*,T)$ is a set
+of parabolic measure zero.
+\end{remark}
+
+\section{What a free force can do}\label{sec:prescription}
+
+We now come to the structural reason why the forced problem is not the unforced problem. The
+observation is elementary, and it is why the two must be discussed separately.
+
+\begin{theorem}[Prescription theorem]\label{thm:prescription}
+Let $T\in(0,\infty]$, $\Omega\in\{\R^3,\T^3\}$, $\nu>0$, and let
+$v\in C^\infty(\Omega\times[0,T))$ be divergence-free with $v(\cdot,0)=u_0$. Let $q$ be the
+unique zero-mean solution of
+\begin{equation}\label{eq:pressure}
+-\Delta q=\Div\bigl((v\cdot\nabla)v\bigr)=\partial_i\partial_j(v_iv_j),
+\end{equation}
+and define
+\begin{equation}\label{eq:force}
+f:=\partial_tv+(v\cdot\nabla)v-\nu\Delta v+\nabla q .
+\end{equation}
+Then $f\in C^\infty(\Omega\times[0,T))$, $\Div f=0$, and $(v,q,f)$ solves \eqref{eq:NS} on
+$\Omega\times[0,T)$ with initial datum $u_0$. Conversely, every classical solution
+$(u,p,f)$ of \eqref{eq:NS} on $[0,T)$ arises in this way from $v=u$, $q=p$.
+\end{theorem}
+
+\begin{proof}
+Since $\Div v=0$, we have $\Div((v\cdot\nabla)v)=\partial_i\partial_j(v_iv_j)$; indeed
+$\Div(v\otimes v)=(v\cdot\nabla)v+(\Div v)v=(v\cdot\nabla)v$. Substituting
+\eqref{eq:force} into the momentum equation shows that the left-hand side equals $f$. For the
+divergence, $\Div(\partial_tv)=0$ and $\Div\Delta v=\Delta\Div v=0$, hence
+\[
+\Div f=\Div\bigl((v\cdot\nabla)v\bigr)+\Delta q=0
+\]
+by \eqref{eq:pressure}. The converse is immediate from the definition of a classical
+solution.
+\end{proof}
+
+\begin{corollary}[The forced problem is a control problem]\label{cor:control}
+For fixed $T$, the map \eqref{eq:force} is a bijection between smooth divergence-free paths on
+$[0,T)$ with $v(0)=u_0$ and the smooth forces for which \eqref{eq:NS} has a smooth solution
+with that datum. Consequently:
+\begin{enumerate}[label=(\roman*),leftmargin=*]
+\item the \emph{existence} question for the forced problem is trivial: every smooth force that
+      arises this way has a smooth solution, by construction;
+\item the non-trivial questions are quantitative: which forces are compatible with which
+      \emph{a priori} bounds, and how large $f$ must be to produce a given growth of $u$;
+\item the unforced problem is the single case $f\equiv0$, i.e.\ the single path satisfying the
+      nonlinear constraint \eqref{eq:force} with $f=0$.
+\end{enumerate}
+\end{corollary}
+
+\begin{proof}
+Surjectivity onto paths is Theorem~\ref{thm:prescription}. Injectivity: if two smooth
+divergence-free paths $v_1,v_2$ with the same initial datum produce the same $f$, then both
+are smooth solutions of the same forced problem, and smooth solutions are unique by the
+standard energy argument (the difference $w$ satisfies an equation whose nonlinear terms are
+estimated exactly as in Proposition~\ref{prop:uniqueness2d}).
+\end{proof}
+
+\begin{corollary}[Manufactured blow-up]\label{cor:manufactured}
+Let $T>0$, $a>0$, let $U\in C^\infty_c(\R^3;\R^3)$ be divergence-free and not identically
+zero, and put
+\begin{equation}\label{eq:selfsimilar}
+\lambda(t)=(2a(T-t))^{-1/2},\qquad v(x,t)=\lambda(t)\,U\bigl(\lambda(t)x\bigr).
+\end{equation}
+Then $v\in C^\infty(\R^3\times[0,T))$, $\Div v=0$, and for every $s>1/2$,
+\begin{equation}\label{eq:blowuprate}
+\norm{v(t)}_{H^s}=\lambda(t)^{s-1/2}\norm{U}_{H^s}\longrightarrow\infty,
+\qquad
+\norm{v(t)}_{\infty}=\lambda(t)\norm{U}_{\infty}\longrightarrow\infty
+\end{equation}
+as $t\uparrow T$. The force \eqref{eq:force} associated with $v$ has the form
+\begin{equation}\label{eq:selfsimilarforce}
+f(x,t)=\lambda(t)^3F\bigl(\lambda(t)x\bigr),\qquad
+F=a\bigl(U+y\cdot\nabla U\bigr)+(U\cdot\nabla)U-\nu\Delta U+\nabla Q,
+\end{equation}
+where $Q$ solves $-\Delta Q=\Div((U\cdot\nabla)U)$, and
+\begin{equation}\label{eq:forcenorm}
+\norm{f(t)}_{\infty}=\lambda(t)^3\norm{F}_{\infty}=(2a(T-t))^{-3/2}\norm{F}_{\infty}.
+\end{equation}
+For the explicit profile $U$ of Appendix~\ref{app:num}, $\norm{F}_{\infty}>0$; hence for that
+profile $\norm{f(t)}_{\infty}\to\infty$ as $t\uparrow T$ and
+$\int_0^T\norm{f(t)}_{\infty}\dd t=\infty$, while $v$ is a smooth solution of the forced
+problem on $[0,T)$.
+\end{corollary}
+
+\begin{proof}
+Divergence-free and smoothness are immediate from the definition. The norm identities follow
+from \eqref{eq:scaling}: for $v=\lambda U(\lambda\cdot)$ one has
+$\norm{v}_{\dot H^s}=\lambda^{s-1/2}\norm{U}_{\dot H^s}$ and
+$\norm{v}_\infty=\lambda\norm{U}_\infty$, and $\lambda(t)\to\infty$.
+
+For \eqref{eq:selfsimilarforce}, compute with $y=\lambda x$ and $\lambda=\lambda(t)$, using
+$\dot\lambda=a\lambda^3$ (which follows from $\lambda^2=1/(2a(T-t))$):
+\[
+\partial_tv=\dot\lambda\bigl(U+y\cdot\nabla U\bigr)=a\lambda^3\bigl(U+y\cdot\nabla U\bigr),
+\quad
+(v\cdot\nabla)v=\lambda^3(U\cdot\nabla)U,\quad
+\Delta v=\lambda^3\Delta U,\quad
+\nabla q=\lambda^3\nabla Q,
+\]
+where $q=\lambda^2Q$. Substituting into \eqref{eq:force} gives \eqref{eq:selfsimilarforce}.
+Taking $L^\infty$ norms gives \eqref{eq:forcenorm}. The positivity of $\norm{F}_\infty$ for
+the profile of Appendix~\ref{app:num} is checked there numerically, with the computation
+reproduced in the repository.
+\end{proof}
+
+\begin{remark}[The point of the corollary]\label{rem:manufactured}
+Corollary~\ref{cor:manufactured} produces a finite-time blow-up of a smooth solution at any
+prescribed time $T$, in every $H^s$ with $s>1/2$, for a smooth force. It is therefore a
+counterexample to the statement ``smooth force implies global smooth solution'' in the
+strongest possible form. What it is \emph{not} is a counterexample to the unforced problem:
+the force \eqref{eq:selfsimilarforce} is not merely non-zero, it degenerates at the rate
+$(T-t)^{-3/2}$, and Theorem~\ref{thm:price} shows that this rate is forced by the scaling of
+the equations.
+\end{remark}
+
+\section{The price of a self-similar blow-up}\label{sec:price}
+
+Corollary~\ref{cor:manufactured} shows that blow-up can be bought with a force that
+degenerates like $(T-t)^{-3/2}$. The next theorem shows that this is not an artefact of the
+construction: for an \emph{exactly} self-similar blow-up the rate is forced, with equality.
+
+\begin{theorem}[Scaling law for the force]\label{thm:price}
+Let $\nu>0$, $T\in(0,\infty)$, $a>0$, and let
+$\lambda(t)=(2a(T-t))^{-1/2}$. Suppose that $(u,p,f)$ is a classical solution of \eqref{eq:NS}
+on $\R^3\times(0,T)$ which is exactly self-similar, i.e.\ there are
+$U,P\in C^\infty(\R^3)$ with
+\begin{equation}\label{eq:selfsimsol}
+u(x,t)=\lambda(t)U\bigl(\lambda(t)x\bigr),
+\qquad
+p(x,t)=\lambda(t)^2P\bigl(\lambda(t)x\bigr).
+\end{equation}
+Then there is $F\in C^\infty(\R^3;\R^3)$ such that
+\begin{equation}\label{eq:selfsimforce2}
+f(x,t)=\lambda(t)^3F\bigl(\lambda(t)x\bigr)
+\end{equation}
+for all $(x,t)\in\R^3\times(0,T)$, namely
+\begin{equation}\label{eq:Fformula}
+F(y)=a\bigl(U+y\cdot\nabla U\bigr)+(U\cdot\nabla)U-\nu\Delta U+\nabla P .
+\end{equation}
+Consequently, for every $t\in(0,T)$,
+\begin{equation}\label{eq:exactrate}
+\norm{f(t)}_{\infty}=(2a(T-t))^{-3/2}\norm{F}_{\infty},
+\qquad
+\norm{f(t)}_{q}=(2a(T-t))^{-(3-3/q)}\norm{F}_{q},
+\end{equation}
+and $\int_0^T\norm{f(t)}_{\infty}\dd t=\infty$ whenever $F\not\equiv0$.
+\end{theorem}
+
+\begin{proof}
+By Theorem~\ref{thm:prescription}, $f=\partial_tu+(u\cdot\nabla)u-\nu\Delta u+\nabla p$. Put
+$y=\lambda(t)x$ and note that $\dot\lambda=a\lambda^3$, which follows from
+$\lambda^{-2}=2a(T-t)$ by differentiation: $-2\lambda^{-3}\dot\lambda=-2a$, i.e.\
+$\dot\lambda=a\lambda^3$. The chain rule gives, exactly as in the proof of
+Corollary~\ref{cor:manufactured},
+\[
+\partial_tu=a\lambda^3\bigl(U+y\cdot\nabla U\bigr),\qquad
+(u\cdot\nabla)u=\lambda^3(U\cdot\nabla)U,\qquad
+\Delta u=\lambda^3\Delta U,\qquad
+\nabla p=\lambda^3\nabla P .
+\]
+Adding, $f=\lambda^3F(y)$ with $F$ given by \eqref{eq:Fformula}. Taking $L^q$ norms and using
+$\norm{f(t)}_{q}=\lambda^{3-3/q}\norm{F}_{q}$ (which is \eqref{eq:forcescaling} with $F$ in
+place of $f$) gives \eqref{eq:exactrate}. Finally, if $F\not\equiv0$, then
+$\norm{F}_\infty>0$ and $\int_0^T\lambda^3\dd t=\infty$ because $\lambda^3=(2a)^{-3/2}(T-t)^{-3/2}$
+is not integrable at $T$.
+\end{proof}
+
+\begin{corollary}[A bounded force cannot support exact self-similarity]\label{cor:price}
+In the setting of Theorem~\ref{thm:price}, if $\sup_{0<t<T}\norm{f(t)}_{\infty}<\infty$, then
+$F\equiv0$ and $f\equiv0$ on $\R^3\times(0,T)$. Equivalently: a force which is bounded in
+$L^\infty$ and not identically zero cannot accompany an exactly self-similar blow-up with
+self-similar pressure.
+\end{corollary}
+
+\begin{proof}
+By \eqref{eq:exactrate}, $\lambda(t)^3\norm{F}_\infty\le M$ for all $t<T$. Since
+$\lambda(t)\to\infty$, this forces $\norm{F}_\infty=0$, so $F\equiv0$ and hence $f\equiv0$.
+\end{proof}
+
+\begin{corollary}[Discrete self-similarity]\label{cor:discrete}
+Suppose that along a sequence $t_k\uparrow T$ the solution is self-similar with a fixed profile
+in the sense that $u(x,t_k)=\lambda_kU(\lambda_kx)$ with $\lambda_k\to\infty$. Then
+\[
+\limsup_{k\to\infty}(T-t_k)^{3/2}\norm{f(t_k)}_{\infty}
+=(2a)^{-3/2}\norm{F}_{\infty}.
+\]
+In particular, a force bounded in $L^\infty$ forces $F\equiv0$ along the sequence.
+\end{corollary}
+
+\begin{proof}
+Apply Theorem~\ref{thm:price} at each $t_k$ and take the limit.
+\end{proof}
+
+\begin{remark}[Reading of the exponent]\label{rem:exponent}
+The exponent $3/2$ is nothing but the scaling dimension of the force: $f_\lambda=\lambda^3f$
+by Proposition~\ref{prop:scaling}, and a self-similar blow-up with time scale
+$\tau=T-t$ has spatial scale $\tau^{1/2}$, so the force at scale $\tau^{1/2}$ is
+$\tau^{-3/2}$ times its value at scale one. Equivalently,
+\[
+\norm{f}_{L^1(0,T;L^\infty)}=\infty
+\quad\text{and}\quad
+\norm{f}_{L^{2/3}(0,T;L^\infty)}=\infty,
+\]
+while $\norm{f}_{L^p(0,T;L^\infty)}<\infty$ for every $p<2/3$. Theorem~\ref{thm:price} is a
+statement about the \emph{exact} self-similar ansatz; it does not exclude Type~II or
+non-self-similar scenarios, which is precisely where the difficulty of the unforced problem
+lies.
+\end{remark}
+
+\begin{remark}[Relation to \cite{CIV2026}]\label{rem:CIVrelation}
+Theorem~\ref{thm:price} is a scaling statement and requires exact self-similarity.
+Theorem~\ref{thm:CIV} below, quoted from \cite{CIV2026}, is an analytic statement: within a structural
+class, a force that is real-analytic in space (uniformly in time) makes the solution regular,
+so the force in the 2026 construction must fail to be analytic near the singular point. The
+two statements point at the same phenomenon from different sides: the force must degenerate,
+and Theorem~\ref{thm:price} quantifies the rate in the self-similar case.
+\end{remark}
+
+\section{The 2026 construction: what is proved and what is blocked}\label{sec:2026}
+
+We now specialise to the announced forced blow-up. Our aim is not to referee the manuscript
+--- we have not verified it --- but to state precisely which quoted theorem blocks which
+extension, so that the logical situation is unambiguous.
+
+\begin{theorem}[Constantin--Ignatova--Vicol {\rm\cite{CIV2026}}]\label{thm:CIV}
+Let $(u,p,f)$ be a suitable weak solution of \eqref{eq:NS} on a parabolic cylinder
+$Q\subset\R^3\times(0,T)$ with $f$ real-analytic in the space variables, locally uniformly in
+time. Assume
+\begin{enumerate}[label=(\roman*),leftmargin=*]
+\item the angular mean of $u$ satisfies anisotropic Type~II bounds, and
+\item $u$ is exactly axisymmetric in a collapsing core region,
+\end{enumerate}
+in the precise sense of \cite{CIV2026}. Then $u$ is regular at the putative singular point.
+Consequently, in the construction of the 2026 manuscript, and in any construction with
+properties (i)--(ii) whose force remains bounded in $C^2$ up to the singular time, the force
+can neither vanish identically near the singular point nor be real-analytic in the space
+variables, locally uniformly in time.
+\end{theorem}
+
+Theorem~\ref{thm:CIV} is quoted, not reproved: the proof rests on unique continuation for the
+linearised Stokes system combined with a zooming-in argument at the putative singularity, and
+is beyond the scope of this paper. Its companion \cite{IKX2026} replaces spatial analyticity
+of $f$ by rotational invariance of $\curl f$.
+
+\begin{corollary}[What the construction must do]\label{cor:CIV}
+Assume the 2026 construction satisfies (i)--(ii) of Theorem~\ref{thm:CIV}. Then its force
+satisfies
+\begin{enumerate}[label=(\roman*),leftmargin=*]
+\item $f\not\equiv0$ in every neighbourhood of the singular point (in particular, the argument
+      cannot be localised to produce a solution of the unforced problem);
+\item $f$ is not real-analytic in $x$ uniformly in $t$ near the singular point, and is not
+      bounded in $C^2$ there.
+\end{enumerate}
+In particular no argument of the form ``the force is supported away from the singularity,
+hence the singular behaviour is that of the unforced equation'' can work within this class.
+\end{corollary}
+
+\begin{proof}
+Immediate from Theorem~\ref{thm:CIV}: $f\equiv0$ is real-analytic and bounded in $C^2$, so
+either alternative would make the solution regular.
+\end{proof}
+
+\begin{remark}[Two different mechanisms of obstruction]\label{rem:twomech}
+Corollary~\ref{cor:CIV} and Theorem~\ref{thm:price} are logically independent.
+Theorem~\ref{thm:price} is quantitative and applies to exact self-similarity of any solution,
+forced or not, and says the force must blow up like $(T-t)^{-3/2}$ in that scenario.
+Corollary~\ref{cor:CIV} is qualitative and applies to a structural class of solutions, and
+says the force cannot be analytic or $C^2$-bounded there. Neither implies the other, and
+neither settles the unforced problem: the case $f\equiv0$ evades both (it is analytic, so
+Theorem~\ref{thm:CIV} would give regularity \emph{if} the structural hypotheses (i)--(ii) were
+known to hold for an unforced singular solution; they are not).
+\end{remark}
+
+\begin{remark}[On the ``wrong problem'' objection]\label{rem:wrong}
+The official statement \cite{Fefferman2000} permits a prescribed smooth force; the discussion
+in \cite{SciAm2026} calls this option (C). Theorem~\ref{thm:prescription} shows that option
+(C), read literally as ``does a smooth solution exist for smooth data and smooth force'', has
+an affirmative answer for a trivial reason. The content of a result for option (C) is
+therefore entirely in the \emph{class} of admissible forces: if the class is
+$C^\infty(\R^3\times[0,T])$ with all derivatives bounded, a blow-up is a strong statement; if
+the class only requires smoothness on $[0,T)$, Corollary~\ref{cor:manufactured} produces
+blow-ups with $\norm{f(t)}_\infty\sim(T-t)^{-3/2}$ and Corollary~\ref{cor:CIV} says that this
+degeneration is unavoidable in the announced class. This is the precise sense in which the
+2026 result answers a different question from the unforced problem; it is not a rhetorical
+objection but a statement about quantifiers.
+\end{remark}
+
+\section{Machine-checked proofs and the autoformalisation gap}\label{sec:lean}
+
+A separate issue concerns the evidential value of the Lean formalisation that accompanied the
+announcement. The following is quoted.
+
+\begin{proposition}[Bastounis--Circelli--Hansen {\rm\cite{BCH2026}}]\label{prop:lean}
+Semantically faithful autoformalisation of natural-language mathematics into a formal system
+has Solvability Complexity Index $\infty$; informally, it is harder than the halting problem.
+Consequently no algorithm can certify that a formal proof is a faithful translation of a given
+natural-language proof, and there are explicit examples --- including the Navier--Stokes
+manuscript of 2026 --- in which the Lean formalisation does not correspond to the
+natural-language argument.
+\end{proposition}
+
+The practical consequence for the present paper is a constraint on what may be claimed as
+evidence:
+\begin{enumerate}[label=(\alph*),leftmargin=*]
+\item a verified Lean file certifies that \emph{some} formal statement has a proof; it does not
+      certify that the formal statement is the theorem stated in the paper;
+\item the gap is not a bug that a better translator would remove: by
+      Proposition~\ref{prop:lean} it is a hardness result;
+\item therefore the status of the 2026 claim must be assessed on the natural-language
+      manuscript, which is what the Clay Institute's process does \cite{ClayNS}.
+\end{enumerate}
+None of this says that the formalisation is wrong, only that it is not, by itself,
+verification of the paper.
+
+\section{A checklist for announced proofs}\label{sec:referee}
+
+The following questions are the ones that decided the status of the 2026 claim, and they are
+the questions any future claim must answer.
+
+\begin{enumerate}[label=\textbf{Q\arabic*.},leftmargin=*]
+\item \textbf{Which formulation?} Unforced or forced; $\R^3$ or $\T^3$; decay or periodicity?
+      The answers are not interchangeable, and Theorem~\ref{thm:prescription} shows that the
+      forced version is a different problem.
+\item \textbf{Which class of forces?} Smooth on $[0,T)$, or smooth and bounded with all
+      derivatives on $[0,T]$? Corollary~\ref{cor:manufactured} shows that the first class
+      admits blow-ups of size $(T-t)^{-3/2}$ in the force; for the second class no such
+      construction is available, and exact self-similarity is excluded by
+      Corollary~\ref{cor:price}.
+\item \textbf{Is the force allowed to degenerate at the singular time?} If yes, what is the
+      rate, and is it compatible with Theorem~\ref{thm:price}?
+\item \textbf{Which structural hypotheses are used?} Axisymmetry, analyticity, Type~I or
+      Type~II bounds? Each must be either proved from the data or stated as a hypothesis, and
+      Theorem~\ref{thm:CIV} shows that some of them are incompatible with a bounded analytic
+      force.
+\item \textbf{Are constants uniform up to $T$?} A bound that degrades as $t\uparrow T$ cannot
+      be used for continuation; see the proofs of Theorems~\ref{thm:PS} and~\ref{thm:BKM}.
+\item \textbf{Is the formalisation faithful?} See \S\ref{sec:lean}; a Lean check of a
+      translation is not a check of the paper.
+\item \textbf{Is the computation reproducible?} For computer-assisted steps, are the code,
+      the inputs and the numerical tolerances public? Appendix~\ref{app:num} is an example of
+      what this looks like at small scale.
+\end{enumerate}
+
+\section{Conclusion}\label{sec:conclusion}
+
+We have not solved the Navier--Stokes Millennium Problem, and nothing above should be read as
+an attempt to. What the paper establishes is a sharp separation of statements:
+\begin{itemize}[leftmargin=*]
+\item For $f\equiv0$ in three dimensions, the known positive results are conditional
+      (Theorems~\ref{thm:PS}, \ref{thm:BKM}) or partial (Theorem~\ref{thm:CKN}); the global
+      regularity question is open, and the only complete unconditional theory is the
+      two-dimensional one (Theorem~\ref{thm:2d}).
+\item For free $f$, the problem is a control problem (Theorem~\ref{thm:prescription}): every
+      smooth divergence-free path is a solution for a unique force, and blow-up in every $H^s$,
+      $s>1/2$, can be manufactured at any prescribed time
+      (Corollary~\ref{cor:manufactured}).
+\item The price of a self-similar blow-up is a force of size $(T-t)^{-3/2}$
+      (Theorem~\ref{thm:price}), and in the structural class of the 2026 construction the force
+      cannot be analytic or $C^2$-bounded at the singular time (Theorem~\ref{thm:CIV},
+      Corollary~\ref{cor:CIV}).
+\end{itemize}
+The third item is the precise sense in which the 2026 announcement does not, and cannot by
+localisation, settle the unforced problem. Whether the unforced problem is true or false
+remains unknown; what is known is that any proof must produce a mechanism for
+$\norm{\nabla u}_\infty\to\infty$ that survives the diffusive smoothing at the critical scale,
+and no such mechanism has been found in two centuries of work on the equations.
+
+\appendix
+
+\section{Inequalities used}\label{app:ineq}
+
+For completeness we record the standard inequalities invoked above, in the form used.
+
+\begin{enumerate}[label=\textbf{(A.\arabic*)},leftmargin=*]
+\item \emph{Gagliardo--Nirenberg (3D).} For $q>3$ and $r=2q/(q-2)$,
+\[
+\norm{\nabla u}_{L^r(\R^3)}\le C\norm{\nabla u}_{2}^{1-3/q}\norm{\nabla^2u}_{2}^{3/q},
+\]
+which follows from $\dot H^1\subset L^6$ and interpolation; the exponents satisfy
+$1/r=1/2-\theta/3$ with $\theta=3/q$. Used in Theorem~\ref{thm:PS}.
+
+\item \emph{Sobolev embeddings.} In two dimensions $W^{1,p}\subset L^\infty$ and
+$W^{2,p}\subset W^{1,\infty}$ for $p>2$; in three dimensions $W^{1,p}\subset L^\infty$ for
+$p>3$. Used in Lemma~\ref{lem:biot} and Theorem~\ref{thm:2d}.
+
+\item \emph{Riesz transforms.} The operators $\partial_i\partial_j(-\Delta)^{-1}$ and
+$\partial_i(-\Delta)^{-1/2}$ are bounded on $L^p$ for $1<p<\infty$; this is the content of
+\eqref{eq:biot} and of the Biot--Savart representation in two dimensions.
+
+\item \emph{Kato--Ponce commutator estimate.} For $s>0$ and Schwartz functions $f,g$,
+\[
+\norm{[\Lambda^s,f]g}_{2}\le C\bigl(\norm{\nabla f}_{\infty}\norm{g}_{H^{s-1}}
++\norm{g}_{\infty}\norm{\nabla f}_{H^{s-1}}\bigr).
+\]
+For divergence-free $u$ this gives
+$\abs{\ip{[\Lambda^s,u\cdot\nabla]u}{\Lambda^su}}\le C\norm{\nabla u}_\infty
+\norm{u}_{H^s}^2$, used in Theorem~\ref{thm:BKM}.
+
+\item \emph{Kato's inequality.} For $\omega\in C^2$ and $p\ge2$,
+$\Delta\abs{\omega}^p\ge p\abs{\omega}^{p-2}\omega\Delta\omega$ in the sense of
+distributions. Used in Lemma~\ref{lem:vorticity}.
+
+\item \emph{Ladyzhenskaya inequality (2D).} $\norm{w}_{4}^2\le C\norm{w}\norm{\nabla w}$
+for $w\in H^1(\T^2)$ with zero mean. Used in Proposition~\ref{prop:uniqueness2d}.
+
+\item \emph{Aubin--Lions lemma.} A sequence bounded in $L^2(0,T;H^1)$ with time derivatives
+bounded in $L^2(0,T;H^{-1})$ has a strongly convergent subsequence in $L^2(0,T;L^2_{\rm loc})$.
+Used in Theorem~\ref{thm:lerayhopf}.
+
+\item \emph{Gronwall's lemma.} If $y' \le a y+b$ with $a,b\in L^1(0,T)$, then
+$y(t)\le e^{\int_0^ta}(y(0)+\int_0^tb)$. Used throughout.
+\end{enumerate}
+
+\section{Numerical verification}\label{app:num}
+
+The identities of \S\S\ref{sec:scaling}--\ref{sec:price} were checked numerically with the
+script \texttt{verify.py} in the repository (plain Python with \texttt{numpy}; no other
+dependencies). Every field is a trigonometric polynomial or a rapidly decaying Gaussian on a
+large periodic box, so the checks are exact up to round-off. The script runs in a few seconds.
+
+\paragraph{T1 (prescription theorem, Theorem~\ref{thm:prescription}).}
+A time-dependent divergence-free path $v(t)=a(t)U_1+b(t)U_2$ with $U_j=\curl A_j$ trigonometric
+is inserted into \eqref{eq:force}, the pressure being obtained from \eqref{eq:pressure} by an
+FFT solve. Results:
+\[
+\max\abs{\Div v}=2.1\cdot10^{-13},\qquad
+\max\abs{\text{residual}}=0,\qquad
+\max\abs{\Div f}=1.5\cdot10^{-10},\qquad
+\sup\abs{v}=20.0 .
+\]
+The third number is the substantive one: $\Div f=0$ holds only if the sign in
+\eqref{eq:pressure} is correct, so this checks the pressure convention rather than merely
+recomputing the residual.
+
+\paragraph{T2 (scaling, Proposition~\ref{prop:scaling}).}
+For arbitrary smooth $(u,p,f)$ (not a solution), the residual
+$R(u,p,f)=(u\cdot\nabla)u-\nu\Delta u+\nabla p-f$ is computed, then the scaled triple is
+computed by exact spectral dilation ($\hat u_\lambda(k)=\lambda\hat u(k/\lambda)$, etc.), and
+the two are compared:
+\[
+\sup\abs{R(u_\lambda,p_\lambda,f_\lambda)-\lambda^3R(u,p,f)(\lambda\cdot)}
+=4.5\cdot10^{-12}\ (\lambda=2),\quad
+5.7\cdot10^{-12}\ (\lambda=3),
+\]
+against $\sup\abs{R}=1.03\cdot10^{2}$, i.e.\ a relative error of $4\cdot10^{-14}$. In
+particular the exponent $3$ in $f_\lambda=\lambda^3f$ is confirmed.
+
+\paragraph{T3 (price law, Theorem~\ref{thm:price}).}
+With the Gaussian profile $\psi=e^{-\abs{y}^2/2}$, $U=\curl(\psi e_z)$, $a=1$, $\nu=1$, a
+$96^3$ grid on $[-16,16]^3$:
+\[
+\sup\abs{\Div U}=8.9\cdot10^{-16},\qquad
+\norm{F}_{\infty}=3.262263 .
+\]
+The chain rule $\partial_tv=\dot\lambda(U+y\cdot\nabla U)$ at $\lambda=1$ (where
+$\dot\lambda/\lambda^3=1$) is confirmed to $2.6\cdot10^{-6}$, the size of the $O(h^2)$
+finite-difference error with $h=10^{-3}$. Finally the price law
+\begin{equation}\label{eq:numerics}
+(T-t)^{3/2}\norm{f(t)}_{\infty}=(2a)^{-3/2}\norm{F}_{\infty}=1.153384
+\end{equation}
+is independent of $t$ to all printed digits for $t=0.25,\,0.5,\,0.875$ (i.e.\
+$\lambda=0.8165,\,1,\,2$), which is the numerical form of \eqref{eq:exactrate}.
+
+\paragraph{T4 (vorticity cancellation, Lemma~\ref{lem:vorticity}).}
+For a random divergence-free trigonometric $u$ on $\T^2$ with $\omega=\curl u$,
+\[
+\abs{\int_{\T^2}(u\cdot\nabla)\omega\,\omega\dd x}=6.6\cdot10^{-15},
+\]
+against a normalisation $\norm{u}_\infty\norm{\nabla\omega}_2\norm{\omega}_2=1.3\cdot10^{4}$,
+a relative size of $5\cdot10^{-19}$. This is the identity that kills the transport term in
+\eqref{eq:vortbound} and hence is the reason two dimensions are tractable.
+
+\paragraph{What the numbers do and do not show.}
+They confirm that the algebra of \S\S\ref{sec:scaling}--\ref{sec:price} is implemented
+correctly and that the exponents $3$ and $3/2$ are the right ones. They say nothing about the
+existence or non-existence of an unforced blow-up, and they are not a substitute for the
+proofs: T1--T4 verify identities, not theorems whose content is an \emph{a priori} bound.
+
+\begin{thebibliography}{99}
+
+\bibitem{Fefferman2000}
+C.~L. Fefferman,
+\emph{Existence and smoothness of the Navier--Stokes equation},
+Clay Mathematics Institute Millennium Prize Problems, 2000.
+
+\bibitem{Leray1934}
+J.~Leray,
+\emph{Sur le mouvement d'un liquide visqueux emplissant l'espace},
+Acta Math. \textbf{63} (1934), 193--248.
+
+\bibitem{Hopf1951}
+E.~Hopf,
+\emph{\"Uber die Anfangswertaufgabe f\"ur die hydrodynamischen Grundgleichungen},
+Math. Nachr. \textbf{4} (1951), 213--231.
+
+\bibitem{Kato1984}
+T.~Kato,
+\emph{Strong $L^p$-solutions of the Navier--Stokes equation in $\R^m$, with applications to
+weak solutions},
+Math. Z. \textbf{187} (1984), 471--480.
+
+\bibitem{RRST2001}
+J.~C. Robinson, J.~L. Rodrigo, W.~Sadowski,
+\emph{The Three-Dimensional Navier--Stokes Equations: Classical Theory},
+Cambridge Studies in Advanced Mathematics 157, Cambridge University Press, 2016.
+
+\bibitem{Lemarie2016}
+P.~G. Lemari\'e-Rieusset,
+\emph{The Navier--Stokes Problem in the 21st Century}, 2nd ed.,
+CRC Press, 2016.
+
+\bibitem{Prodi1959}
+G.~Prodi,
+\emph{Un teorema di unicit\`a per le equazioni di Navier--Stokes},
+Ann. Mat. Pura Appl. \textbf{48} (1959), 173--182.
+
+\bibitem{Serrin1962}
+J.~Serrin,
+\emph{On the interior regularity of weak solutions of the Navier--Stokes equations},
+Arch. Rational Mech. Anal. \textbf{9} (1962), 187--195.
+
+\bibitem{BKM1984}
+J.~T. Beale, T.~Kato, A.~Majda,
+\emph{Remarks on the breakdown of smooth solutions for the $3$-D Euler equations},
+Comm. Math. Phys. \textbf{94} (1984), 61--66.
+
+\bibitem{Ladyzhenskaya1969}
+O.~A. Ladyzhenskaya,
+\emph{The Mathematical Theory of Viscous Incompressible Flow}, 2nd ed.,
+Gordon and Breach, 1969.
+
+\bibitem{CKN1982}
+L.~Caffarelli, R.~Kohn, L.~Nirenberg,
+\emph{Partial regularity of suitable weak solutions of the Navier--Stokes equations},
+Comm. Pure Appl. Math. \textbf{35} (1982), 771--831.
+
+\bibitem{GigaSohr1991}
+Y.~Giga, H.~Sohr,
+\emph{Abstract $L^p$ estimates for the Cauchy problem with applications to the Navier--Stokes
+equations in exterior domains},
+J. Funct. Anal. \textbf{102} (1991), 72--94.
+
+\bibitem{CIV2026}
+P.~Constantin, M.~Ignatova, V.~Vicol,
+\emph{Regularity of asymptotically axisymmetric solutions to the 3D Navier--Stokes equations
+with analytic forcing}, arXiv:2609.20803, 2026.
+
+\bibitem{IKX2026}
+B.~Ingimarson, I.~Kukavica, Q.~Xu,
+\emph{Regularity of asymptotically axisymmetric Navier--Stokes flows with rotationally
+invariant curl of the force}, arXiv:2610.25531, 2026.
+
+\bibitem{BCH2026}
+A.~Bastounis, F.~Circelli, A.~C. Hansen,
+\emph{Navier--Stokes lost in translation: why Lean verification of AI autoformalisation does
+not guarantee correct natural language proofs}, arXiv:2610.08144, 2026.
+
+\bibitem{OpenAI2026}
+OpenAI, \emph{On the Navier--Stokes Millennium Prize problem}, manuscript and Lean
+formalisation, September 2026.
+
+\bibitem{OpenAIrepo2026}
+OpenAI, \emph{Mathematics manuscript collection} (721 manuscripts, 373 result families),
+\url{https://github.com/openai/math}, accessed October 2026.
+
+\bibitem{RW2026}
+A.~Gallegos,
+\emph{OpenAI withdraws three preprints a day after releasing 722 manuscripts on unsolved math
+problems}, Retraction Watch, 8 October 2026.
+
+\bibitem{SciAm2026}
+J.~Howlett,
+\emph{Did OpenAI solve the wrong Navier--Stokes problem?}, Scientific American, 21 September
+2026.
+
+\bibitem{ClayNS}
+Clay Mathematics Institute,
+\emph{Navier--Stokes equation} (status: active),
+\url{https://www.claymath.org/millennium/navier-stokes-equation/}, accessed November 2026.
+
+\bibitem{WikipediaNS}
+Wikipedia, \emph{Navier--Stokes existence and smoothness}, section on the 2026 announcement,
+accessed November 2026.
+
+\end{thebibliography}
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
