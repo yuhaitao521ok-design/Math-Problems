@@ -70,6 +70,10 @@
 三维不可压缩 NS 方程：任意光滑初值下，是否整体存在光滑解？还是会有限时间爆破？
 - 这是“流体力学的基本语法”，也是唯一一个“工程师天天在算、数学家却不知道解是否存在”的方程。
 - 二维情形已解决（整体光滑解存在），三维卡住。
+- **2026 年新动态**：9 月 8 日 OpenAI 宣称其内部模型证明了“带 C^∞ 外力项”的三维 NS 有限时间爆破（166 页手稿 + Lean 形式化）。这只对应 Fefferman 2000 年官方陈述里允许外力的“选项 C”。
+- 争议：9 月 17 日 Constantin–Ignatova–Vicol（arXiv:2609.20803）证明，该构造中的外力在奇点附近既不能恒为零、也不能实解析，否则解其实正则——即这条“外力漏洞”无法推广到无外力版本；后续工作（arXiv:2610.25531）把解析性条件弱化为外力旋度的旋转不变性。Clay 数学研究所官网仍把该问题标为 **Active**，奖金未颁发。
+- 另有 Bastounis–Circelli–Hansen（arXiv:2610.08144）指出，该工作的 Lean 形式化与其自然语言证明并不对应，“机器验证过”不等于“证明正确”。
+- 现状：**无外力版本（数学家真正关心的版本）依旧完全开放**。
 
 ### 13. 欧拉方程、玻尔兹曼方程、可压缩 NS 的适定性
 同类问题：解的全局正则性、爆破准则、奇异极限（流体动力学极限）等，多数在三维情形开放。
@@ -150,7 +154,7 @@ motive 理论的地基性猜想，绝大多数情形开放，且与黎曼猜想�
 | 庞加莱猜想 | ✅ 已解决（Perelman，拒领奖金） |
 | 黎曼猜想 | ❌ 开放 |
 | P vs NP | ❌ 开放 |
-| 纳维—斯托克斯方程 | ❌ 开放 |
+| 纳维—斯托克斯方程 | ❌ 开放（2026-09 OpenAI 声称解决“带外力”变体，Clay 官网仍标 Active） |
 | 杨—米尔斯存在性与质量间隙 | ❌ 开放 |
 | 霍奇猜想 | ❌ 开放 |
 | Birch–Swinnerton-Dyer 猜想 | ❌ 开放 |
@@ -168,6 +172,45 @@ motive 理论的地基性猜想，绝大多数情形开放，且与黎曼猜想�
 
 ---
 
+## 九、2026：AI 冲击波（截至 2026-11）
+
+这一段是本清单唯一需要“持续更新”的部分：AI 已经把这些老题从“纯人类议题”变成了“人机共同议题”。
+
+### 9.1 纳维—斯托克斯：声称、漏洞与争议
+- **2026-09-08**：OpenAI 宣布内部模型证明“带光滑外力项”的三维 NS 存在有限时间爆破，公开 166 页手稿与 Lean 形式化。它对应 Clay 官方陈述中允许外力的“选项 C”，不是无外力版本。
+- **2026-09-17**：Constantin–Ignatova–Vicol（arXiv:2609.20803）证明，在该构造中，若外力在奇点附近消失或实解析，解其实正则。也就是说：**这条证明无法推广到无外力情形**。Silvestre 的评价是“最重要的问题仍未解决”。
+- **2026-10-18**：Ingimarson–Kukavica–Xu（arXiv:2610.25531）把“实解析”弱化为“外力旋度旋转不变”，结论不变。
+- **2026-10-06**：Bastounis–Circelli–Hansen（arXiv:2610.08144）证明“语义忠实的自动形式化”难度高于停机问题，并给出实例：OpenAI 的 Lean 证明与其自然语言证明并不对应。
+- **官方状态**：Clay 数学研究所仍把该问题列为 **Active**，验证“刻意不赶时间”（deliberately unhurried），100 万美元奖金未颁发；同时存在 NYU 数学家的优先权争议，8000 余名研究者联署批评其发布方式。
+
+### 9.2 722 篇手稿：数字到底是多少
+| 项目 | 数字 |
+|---|---|
+| 2026-10-06 首发手稿 | 722 篇，372 个“成果族”（result families） |
+| 次日撤回 | 3 篇（一篇符号错误 + 两篇依赖它的论文） |
+| 修订 | 14 篇（补证明、改陈述、清假设） |
+| 2026-10-26 新增 | 2 篇 |
+| 现目录（openai/math） | **721 篇 / 373 族** |
+| 有 Lean 形式化的“头条结果” | 300 / 719 ≈ 42% |
+| 模型实际被投喂的问题 | 约 4000 个，平均每个约 3 小时算力 |
+
+要点：
+- OpenAI 自己把合集定性为 **“raw research data”**，并称“优先权与功劳完全交由数学界判断”；
+- 名单里确实有黎曼 ζ 函数零点自由区域（Re(s) > 11/12）、CM 阿贝尔簇的霍奇猜想、四维 Kakeya 猜想、低 Selmer 秩下的完整 BSD 公式等；
+- 但 **9 月那篇 NS 爆破论文不在这个合集里**——合集内与 NS 相关的只有第 376 族“受迫 NS 流中的通用计算”。所以“700 道题”与“NS 证明”是同一场运动的两次发布，不是同一批文件；
+- 3 篇撤回、若干“头条结果”待核，说明“发布 ≠ 证明成立”。
+
+### 9.3 对这份清单的影响
+| 问题 | 2026 年前 | 现在（2026-11） |
+|---|---|---|
+| 纳维—斯托克斯（无外力） | 开放 | 仍开放；外力变体被声称解决，且被证明不可推广 |
+| 黎曼猜想 | 开放 | 仍开放（仅零点自由区域的局部结果） |
+| 霍奇猜想 | 开放 | 仍开放（仅 CM 阿贝尔簇等特殊情形） |
+| BSD 猜想 | 开放 | 仍开放（仅低 Selmer 秩情形） |
+| 其他百年老题 | 开放 | 未见被解决 |
+
+---
+
 ## 参考文献与延伸
 
 - Clay Mathematics Institute, *Millennium Prize Problems*: https://www.claymath.org/millennium-problems/
@@ -177,3 +220,13 @@ motive 理论的地基性猜想，绝大多数情形开放，且与黎曼猜想�
 - 张益唐, *Bounded gaps between primes*, Annals of Mathematics, 2014
 - Helfgott, *The ternary Goldbach conjecture is true*, arXiv:1312.7748
 - Viazovska, *The sphere packing problem in dimension 8*, Annals of Mathematics, 2017
+
+2026 年 AI 相关：
+
+- OpenAI, *Sharing AI progress in mathematics*（2026-10-06）及手稿仓库 https://github.com/openai/math （721 篇 / 373 族）
+- P. Constantin, M. Ignatova, V. Vicol, *Regularity of asymptotically axisymmetric solutions to the 3D Navier–Stokes equations with analytic forcing*, arXiv:2609.20803
+- B. Ingimarson, I. Kukavica, Q. Xu, *Regularity of asymptotically axisymmetric Navier–Stokes flows with rotationally invariant curl of the force*, arXiv:2610.25531
+- A. Bastounis, F. Circelli, A. C. Hansen, *Navier-Stokes lost in translation: Why Lean verification of AI autoformalisation does not guarantee correct natural language proofs*, arXiv:2610.08144
+- J. Howlett, *Did OpenAI solve the wrong Navier-Stokes problem?*, Scientific American, 2026-09-21
+- A. Gallegos, *OpenAI withdraws three preprints a day after releasing 722 manuscripts on unsolved math problems*, Retraction Watch, 2026-10-08
+- Clay Mathematics Institute, Navier–Stokes 问题页面（状态仍为 Active）: https://www.claymath.org/millennium/navier-stokes-equation/
